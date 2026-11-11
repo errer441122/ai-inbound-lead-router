@@ -206,13 +206,10 @@ def write_provenance(rows: list[dict[str, object]], raw: int, kept: int, overlap
 Re-running `python src/prepare_real_data.py` reproduces this file byte-for-byte
 from the SHA256-pinned source.
 
-## Hybrid disclosure
+## Scope
 
-The CRM analyses (RFM, cohort retention, CLV, customer lifecycle) run on
-**this real dataset**. The campaign-performance, multi-touch attribution,
-budget-reallocation, A/B and lead-scoring-engagement / GDPR-consent modules
-have **no equivalent in any permissive public dataset** and remain
-**clearly-labelled simulated** data — see `data/DATA_CARD.md`.
+Every analysis in this repository (RFM, cohort retention, customer value,
+lifecycle stages) runs on this dataset and nothing else.
 """,
         encoding="utf-8",
         newline="\n",

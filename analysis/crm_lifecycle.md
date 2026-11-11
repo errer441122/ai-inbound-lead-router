@@ -1,40 +1,13 @@
-# Customer Lifecycle, Lead Scoring & Consent (hybrid)
+# Customer lifecycle stages
 
-**Lifecycle is REAL** — derived from purchase behaviour of 5,878 customers in *Online Retail II* (UCI, CC BY 4.0). **Lead score and consent are a disclosed SIMULATED overlay** keyed to the real customer IDs (no public dataset carries engagement or consent — see `data/DATA_CARD.md` / `data/REAL_DATA_PROVENANCE.md`).
+Purchase recency and order count for 5,878 customers in *Online Retail II* (UCI, CC BY 4.0). Revenue is each stage's historical spend, so it shows what is at stake, not a forecast.
 
-## A. Customer lifecycle — REAL (purchase recency/frequency)
+| Stage | Rule | Customers | Share | Historical revenue | Revenue share | Recommended action |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| New | last order within 90 days, 1 order | 365 | 6% | GBP 139,190 | 1% | Onboarding / second-purchase nudge |
+| Repeat | last order within 90 days, 2+ orders | 2,524 | 43% | GBP 13,886,457 | 80% | Loyalty / cross-sell flow |
+| At risk | last order 91-180 days ago | 588 | 10% | GBP 1,059,343 | 6% | Win-back sequence |
+| Dormant | last order 181-365 days ago | 787 | 13% | GBP 1,052,124 | 6% | Reactivation offer |
+| Churned | last order more than 365 days ago | 1,614 | 27% | GBP 1,294,436 | 7% | Low-cost reactivation, then sunset |
 
-| Stage | Customers | Share | Avg lead score* | Reachable* | Suppressed* | Recommended action |
-| --- | ---: | ---: | ---: | ---: | ---: | --- |
-| New | 365 | 6% | 34 | 256 | 109 | Onboarding / second-purchase nudge |
-| Repeat | 2,524 | 43% | 34 | 1,738 | 786 | Loyalty / cross-sell flow |
-| At risk | 588 | 10% | 34 | 419 | 169 | Win-back sequence |
-| Dormant | 787 | 13% | 35 | 557 | 230 | Reactivation offer |
-| Churned | 1,614 | 27% | 33 | 1,132 | 482 | Low-cost reactivation, then sunset |
-
-_\* lead score / reachable / suppressed come from the simulated overlay (Section B)._
-
-## B. Lead scoring & GDPR consent — SIMULATED overlay (disclosed)
-
-On the synthetic overlay, **4,102 of 5,878 customers (70%) are campaign-eligible** (`opted_in`). 1,776 are suppressed: 571 opted_out, 1,205 unknown. A high lead score never overrides missing consent.
-
-## Priority: reachable high-value lapsing customers
-
-Real At-risk/Dormant customers ranked by **real** lifetime spend, filtered to consent-eligible (simulated) — the list a CRM team would action first.
-
-| Stage | Real spend | Lead score* | Why* |
-| --- | ---: | ---: | --- |
-| Dormant | GBP 77,556 | 40 | 2 key-page views; 10 page views; 1 form submits |
-| Dormant | GBP 44,534 | 59 | demo request; 12 page views; 1 form submits |
-| Dormant | GBP 39,916 | 37 | 2 key-page views; 11 page views; 1 form submits |
-| At risk | GBP 26,259 | 21 | 1 form submits; 2 email clicks; 6 page views |
-| Dormant | GBP 17,388 | 55 | 3 key-page views; 2 form submits; 4 email clicks |
-| At risk | GBP 17,335 | 22 | 13 page views; 1 form submits; 1 email clicks |
-| At risk | GBP 16,710 | 46 | 4 key-page views; 4 email clicks; 14 page views |
-| At risk | GBP 16,250 | 63 | 3 form submits; 5 email clicks; 2 key-page views |
-| At risk | GBP 16,246 | 23 | 2 key-page views; 2 email clicks; 5 page views |
-| At risk | GBP 15,601 | 20 | 5 email clicks; 5 page views |
-
-## Boundary
-
-Hybrid by necessity: the lifecycle is real public transactional data (Online Retail II, UCI, CC BY 4.0); the engagement and consent columns are clearly-labelled simulated overlay because no permissive public dataset carries them. The simulated part is disclosed in `data/DATA_CARD.md`; relationships are observational, not causal.
+The thresholds are a convention, not something this dataset proves. Relationships are observational, not causal.

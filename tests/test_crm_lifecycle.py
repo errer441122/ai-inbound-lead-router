@@ -1,6 +1,4 @@
-"""Behavioral checks for the hybrid lifecycle module:
-REAL purchase-based lifecycle + disclosed SIMULATED engagement/consent overlay.
-"""
+"""Checks for the purchase-based lifecycle stages."""
 
 from __future__ import annotations
 
@@ -13,52 +11,27 @@ sys.path.insert(0, str(ROOT / "src"))
 import crm_lifecycle as cl  # noqa: E402
 
 RESULT = cl.run()
-OVERLAY = cl.read_overlay()
-LIFECYCLE = cl.real_lifecycle()
-KNOWN_STAGES = {"New", "Repeat", "At risk", "Dormant", "Churned"}
+CUSTOMERS = cl.lifecycle()
 
 
-def test_real_lifecycle_partitions_all_customers() -> None:
-    assert RESULT["customers"] == len(LIFECYCLE) > 0
-    assigned = sum(f["customers"] for f in RESULT["lifecycle_funnel_real"])
-    assert assigned == RESULT["customers"]
-    for f in RESULT["lifecycle_funnel_real"]:
-        assert f["stage"] in KNOWN_STAGES
-        assert f["campaign_eligible"] + f["suppressed"] == f["customers"]
+def test_every_customer_gets_exactly_one_stage() -> None:
+    assert RESULT["customers"] == len(CUSTOMERS) > 0
+    assert sum(s["customers"] for s in RESULT["stages"]) == RESULT["customers"]
+    assert {s["stage"] for s in RESULT["stages"]} <= set(cl.LIFECYCLE_ORDER)
+    assert abs(sum(s["revenue_share"] for s in RESULT["stages"]) - 1.0) < 0.001
 
 
-def test_lead_score_is_bounded_and_explained() -> None:
-    for e in OVERLAY.values():
-        s = cl.lead_score(e)
-        assert 0 <= s["score"] <= 100
-        assert isinstance(s["reason"], str) and s["reason"]
+def test_stage_boundaries() -> None:
+    assert cl.stage_for(0, 1) == "New"
+    assert cl.stage_for(90, 1) == "New"
+    assert cl.stage_for(90, 2) == "Repeat"
+    assert cl.stage_for(91, 5) == "At risk"
+    assert cl.stage_for(180, 1) == "At risk"
+    assert cl.stage_for(181, 1) == "Dormant"
+    assert cl.stage_for(365, 1) == "Dormant"
+    assert cl.stage_for(366, 9) == "Churned"
 
 
-def test_consent_is_a_hard_gate_separate_from_score() -> None:
-    co = RESULT["consent_overlay"]
-    assert set(co["suppressed_by_reason"]).issubset({"opted_out", "unknown"})
-    assert co["eligible"] + co["suppressed"] == RESULT["customers"]
-    opted_in = sum(1 for v in OVERLAY.values() if v["consent"] == "opted_in")
-    assert co["eligible"] == opted_in
-    spoof = {
-        "page_views": 30, "key_page_views": 9, "email_clicks": 9,
-        "form_submits": 3, "demo_request": 1, "webinar_signup": 1,
-    }
-    assert cl.lead_score(spoof)["score"] == 100  # score never encodes consent
-
-
-def test_overlay_keys_onto_real_customers_only() -> None:
-    real_ids = set(LIFECYCLE)
-    assert set(OVERLAY).issubset(real_ids)
-
-
-def test_priority_list_is_reachable_lapsing_value() -> None:
-    for t in RESULT["priority_reachable_value_accounts"]:
-        assert t["stage"] in ("At risk", "Dormant")
-        assert t["monetary_gbp"] > 0
-        assert 0 <= t["lead_score"] <= 100
-
-
-def test_real_spend_is_labelled_in_gbp() -> None:
+def test_revenue_is_labelled_in_gbp() -> None:
     md = cl._md(RESULT)
     assert "GBP" in md and "EUR" not in md

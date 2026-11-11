@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>CRM & Campaign Performance Dashboard</title>
-<meta name="description" content="RFM segments, cohort retention and customer lifetime value on 5,878 real customers (UCI Online Retail II), plus attribution, A/B test and budget model on disclosed simulated data.">
-<meta property="og:title" content="CRM & Campaign Performance Dashboard">
-<meta property="og:description" content="26% of customers bring 71% of revenue: RFM, retention and CLV on real e-commerce data, plus attribution and A/B testing.">
+<title>CRM retention dashboard</title>
+<meta name="description" content="RFM segments, cohort retention and customer lifetime value on 5,878 customers from a public dataset (UCI Online Retail II).">
+<meta property="og:title" content="CRM retention dashboard">
+<meta property="og:description" content="26% of customers bring 71% of revenue: RFM segments, cohort retention and customer value on a public e-commerce dataset.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://errer441122.github.io/digital-campaign-performance-dashboard/">
 <meta property="og:image" content="https://errer441122.github.io/digital-campaign-performance-dashboard/preview.png">
@@ -17,14 +17,14 @@
   color-scheme: light;
   --page: #f5f6f8; --surface: #ffffff; --ink: #0f172a; --ink-2: #475569; --muted: #64748b;
   --line: #e2e8f0; --track: #edf1f6; --shadow: 0 1px 2px rgba(15,23,42,.06);
-  --accent: #2563eb; --accent-2: #ea7a2c; --accent-3: #0f9488; --real: #15803d; --sim: #a16207; --hatch: #cbd5e1;
+  --accent: #2563eb; --accent-3: #0f9488; --real: #15803d; --hatch: #cbd5e1;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
     --page: #0b1020; --surface: #121a2b; --ink: #eef2f7; --ink-2: #c3ccd9; --muted: #93a0b4;
     --line: #23304a; --track: #1d2840; --shadow: none;
-    --accent: #5b9cf6; --accent-2: #f39a55; --accent-3: #2dc4b0; --real: #4ade80; --sim: #f5c04a; --hatch: #33415c;
+    --accent: #5b9cf6; --accent-3: #2dc4b0; --real: #4ade80; --hatch: #33415c;
   }
 }
 * { box-sizing: border-box; }
@@ -50,7 +50,7 @@ h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.15; margin: 0 0 10px; let
   border-radius: 999px; padding: 4px 12px; }
 .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
   padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; vertical-align: 2px; }
-.tag.real { color: var(--real); } .tag.sim { color: var(--sim); }
+.tag.real { color: var(--real); }
 .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
 .card, .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
 .kpi { padding: 16px 18px; }
@@ -65,7 +65,6 @@ h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.15; margin: 0 0 10px; let
 section.block { margin: 0 0 34px; }
 .block > h2 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
 .block > p.desc { color: var(--ink-2); margin: 0 0 14px; max-width: 80ch; }
-.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .card { padding: 20px 22px; min-width: 0; }
 .card h3 { font-size: 16px; margin: 0 0 4px; }
 .card .note { color: var(--ink-2); font-size: 14px; margin: 0 0 14px; }
@@ -81,14 +80,9 @@ th[scope=row] small { display: block; font-weight: 400; color: var(--muted); fon
 .cell { display: flex; align-items: center; gap: 10px; }
 .bar { flex: 1; min-width: 36px; height: 10px; border-radius: 5px; background: var(--track); overflow: hidden; }
 .bar i { display: block; height: 100%; border-radius: 5px; background: var(--accent); }
-.bar.alt i { background: var(--accent-2); }
 .bar.rev i { background: var(--accent-3); }
 .num em { font-style: normal; color: var(--muted); margin-left: 4px; }
 .cell .num { min-width: 6.5em; }
-.pair { display: grid; grid-template-columns: minmax(0, 1fr) 3.4em; gap: 4px 10px; align-items: center; }
-.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--ink-2); margin: 0 0 8px; }
-.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
-.delta { font-weight: 600; }
 .scroll { overflow-x: auto; }
 .heat { font-size: 13px; }
 .heat th, .heat td { padding: 5px 6px; }
@@ -100,28 +94,11 @@ th[scope=row] small { display: block; font-weight: 400; color: var(--muted); fon
 .scale .ramp { width: 160px; height: 10px; border-radius: 5px; }
 .scale .na { display: inline-block; width: 22px; height: 12px; border-radius: 3px; vertical-align: -2px;
   background: repeating-linear-gradient(135deg, transparent 0 4px, var(--hatch) 4px 5px); border: 1px solid var(--line); }
-.variants { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
-.variant { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
-.variant span { display: block; font-size: 13px; color: var(--ink-2); }
-.variant b { display: block; font-size: 24px; font-variant-numeric: tabular-nums; margin: 2px 0 6px; }
-.variant small { color: var(--muted); }
-.ci { position: relative; height: 30px; margin: 6px 0 2px; }
-.ci::before { content: ""; position: absolute; left: 0; right: 0; top: 14px; height: 2px; background: var(--track); }
-.ci .range { position: absolute; top: 9px; height: 12px; border-radius: 6px; background: color-mix(in srgb, var(--accent) 35%, transparent); }
-.ci .pt { position: absolute; top: 6px; width: 4px; height: 18px; margin-left: -2px; border-radius: 2px; background: var(--accent); }
-.ci .zero { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink-2); }
-.ci-lbl { position: relative; height: 16px; font-size: 12.5px; color: var(--muted); }
-.ci-lbl span { position: absolute; transform: translateX(-50%); }
-.stats { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13.5px; color: var(--ink-2); margin: 12px 0 0; }
-.move { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 18px; font-weight: 600; margin: 4px 0 10px; }
-.move .arrow { color: var(--muted); }
-.move .amt { color: var(--accent); font-variant-numeric: tabular-nums; }
 footer { color: var(--ink-2); font-size: 13.5px; border-top: 1px solid var(--line); padding: 22px 0 40px; }
 footer p { margin: 0 0 8px; max-width: 95ch; }
-@media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) {
   .wrap { padding: 0 14px; } .kpi b { font-size: 24px; } .card { padding: 16px; }
-  .variants { grid-template-columns: 1fr; }
   .cell { flex-direction: column; align-items: stretch; gap: 4px; } .cell .num { text-align: left; min-width: 0; }
   .cell .bar { flex: none; }
   th, td { padding: 7px 6px; }
@@ -131,21 +108,20 @@ footer p { margin: 0 0 8px; max-width: 95ch; }
 </head>
 <body>
 <header class="top"><div class="wrap">
-<b>CRM & Campaign Dashboard</b>
-<nav aria-label="Sections"><a href="#customers">Customers</a><a href="#retention">Retention</a><a href="#markets">Markets</a><a href="#media">Media &amp; tests</a></nav>
+<b>CRM retention dashboard</b>
+<nav aria-label="Sections"><a href="#customers">Customers</a><a href="#retention">Retention</a><a href="#markets">Markets</a></nav>
 <a class="src" href="https://github.com/errer441122/digital-campaign-performance-dashboard">Source ↗</a>
 </div></header>
 <main class="wrap">
 <div class="hero">
-<h1>Which customers deserve which CRM action, and where should media budget move?</h1>
-<p class="lead">RFM segmentation, cohort retention and lifetime value on a real UK online retailer, followed by
-attribution, an A/B test and a budget model on simulated campaign data. Every card says which kind of data it uses.</p>
-<div class="chips"><span class="chip"><span class="tag real">Real</span> UCI Online Retail II · 36,969 orders · Dec 2009 – Dec 2011 · GBP</span>
-<span class="chip"><span class="tag sim">Simulated</span> campaigns, journeys and A/B test · EUR</span>
-<span class="chip">Cross-checked with pandas, DuckDB and statsmodels</span></div>
+<h1>Which customers bring the revenue, and which CRM action does each group need?</h1>
+<p class="lead">RFM segmentation, cohort retention and customer value for a UK online retailer. This is an analysis
+exercise on a public dataset, not client work.</p>
+<div class="chips"><span class="chip"><span class="tag real">Public data</span> UCI Online Retail II · 36,969 orders · Dec 2009 – Dec 2011 · GBP</span>
+<span class="chip">Cross-checked with pandas and DuckDB</span></div>
 </div>
 
-<section class="kpis" aria-label="Headline figures, real data">
+<section class="kpis" aria-label="Headline figures">
 <div class="kpi"><span>Customers analysed</span><b>5,878</b><small>36,969 orders over two years</small></div>
 <div class="kpi"><span>Revenue</span><b>£17.4M</b><small>identified customers, excl. returns and cancellations</small></div>
 <div class="kpi"><span>Revenue from Champions</span><b>71%</b><small>from 26% of customers</small></div>
@@ -157,12 +133,11 @@ attribution, an A/B test and a budget model on simulated campaign data. Every ca
 <ol>
 <li>Protect <b>Champions</b> before buying reach: 26% of customers, 71% of revenue (VIP &amp; referral flow).</li>
 <li>Judge acquisition cost by market: a customer in Germany is worth <b>48% more</b> over their lifetime than one in United Kingdom.</li>
-<li>Do not fund media on last click: it under-credits Display by <b>266 conversions</b> and over-credits Paid Search by 363 <span class="tag sim">Simulated</span></li>
 </ol>
 </section>
 
 <section class="block" id="customers">
-<h2>Customers <span class="tag real">Real data</span></h2>
+<h2>Customers</h2>
 <p class="desc">Recency, frequency and monetary quintiles put every customer into one segment, and each segment into one automation flow.</p>
 <div class="card">
 <h3>RFM segments: who they are and what they bring</h3>
@@ -173,7 +148,7 @@ attribution, an A/B test and a budget model on simulated campaign data. Every ca
 </section>
 
 <section class="block" id="retention">
-<h2>Retention <span class="tag real">Real data</span></h2>
+<h2>Retention</h2>
 <p class="desc">Share of each signup-month cohort that ordered again k months later.</p>
 <div class="card">
 <h3>Repeat purchase by cohort</h3>
@@ -183,7 +158,7 @@ attribution, an A/B test and a budget model on simulated campaign data. Every ca
 </section>
 
 <section class="block" id="markets">
-<h2>Markets <span class="tag real">Real data</span></h2>
+<h2>Markets</h2>
 <p class="desc">Historical revenue per customer for markets with at least 30 customers; 37 smaller markets (290 customers) are pooled, not ranked.</p>
 <div class="card">
 <h3>Lifetime value by market</h3>
@@ -192,33 +167,10 @@ attribution, an A/B test and a budget model on simulated campaign data. Every ca
 <p class="take">A customer in Germany is worth 48% more than one in United Kingdom: a higher acquisition cost can still pay back there.</p>
 </div>
 </section>
-
-<section class="block" id="media">
-<h2>Media &amp; tests <span class="tag sim">Simulated data</span></h2>
-<p class="desc">No public dataset carries ad spend, user journeys and experiments together, so this part runs on a disclosed, deterministic simulation.</p>
-<div class="grid">
-<div class="card">
-<h3>Last touch vs data-driven attribution</h3>
-<p class="note">Conversions credited to each channel by last click and by a Markov removal-effect model.</p>
-<div class="legend"><span><i style="background:var(--accent)"></i>Last touch</span><span><i style="background:var(--accent-2)"></i>Markov removal effect</span></div><div class="scroll"><table><caption class="sr">Conversions credited per channel, last touch vs Markov</caption><thead><tr><th scope="col">Channel</th><th scope="col">Conversions credited</th><th scope="col" class="n">Shift</th></tr></thead><tbody><tr><th scope="row">Paid Search</th><td><div class="pair"><span class="bar "><i style="width:100.0%"></i></span><span class="num">1,022</span><span class="bar alt"><i style="width:64.5%"></i></span><span class="num">659</span></div></td><td class="n delta">▼ −363</td></tr><tr><th scope="row">Email</th><td><div class="pair"><span class="bar "><i style="width:63.6%"></i></span><span class="num">650</span><span class="bar alt"><i style="width:40.4%"></i></span><span class="num">413</span></div></td><td class="n delta">▼ −237</td></tr><tr><th scope="row">Paid Social</th><td><div class="pair"><span class="bar "><i style="width:9.6%"></i></span><span class="num">98</span><span class="bar alt"><i style="width:33.8%"></i></span><span class="num">346</span></div></td><td class="n delta">▲ +248</td></tr><tr><th scope="row">Display</th><td><div class="pair"><span class="bar "><i style="width:6.8%"></i></span><span class="num">70</span><span class="bar alt"><i style="width:32.9%"></i></span><span class="num">336</span></div></td><td class="n delta">▲ +266</td></tr><tr><th scope="row">Organic Search</th><td><div class="pair"><span class="bar "><i style="width:11.3%"></i></span><span class="num">115</span><span class="bar alt"><i style="width:19.6%"></i></span><span class="num">201</span></div></td><td class="n delta">▲ +86</td></tr><tr><th scope="row">Direct</th><td><div class="pair"><span class="bar "><i style="width:10.2%"></i></span><span class="num">104</span><span class="bar alt"><i style="width:10.2%"></i></span><span class="num">105</span></div></td><td class="n delta">▲ +1</td></tr></tbody></table></div>
-<p class="take">Last touch over-credits Paid Search (−363) and under-credits Display (+266): upper-funnel channels assist conversions that the closer gets credit for.</p>
-</div>
-<div class="card">
-<h3>Landing-page A/B test</h3>
-<p class="note">Conversion rate per variant and the uplift's 95% confidence interval.</p>
-<div class="variants"><div class="variant"><span>A · Control landing page</span><b>5.50%</b><span class="bar "><i style="width:84.6%"></i></span><small>462 of 8,400 sessions</small></div><div class="variant"><span>B · Short-form landing page</span><b>6.50%</b><span class="bar alt"><i style="width:100.0%"></i></span><small>533 of 8,200 sessions</small></div></div><div class="ci" role="img" aria-label="Uplift +1.00 percentage points, 95% CI +0.28 to +1.72"><span class="range" style="left:27.4%;width:calc(83.3% - 27.4%)"></span><span class="zero" style="left:16.7%"></span><span class="pt" style="left:55.4%"></span></div><div class="ci-lbl"><span style="left:16.7%">0</span></div><p class="note" style="margin:8px 0 0">Uplift <b>+1.00 pp</b>, 95% CI +0.28 to +1.72 pp: entirely above zero.</p><p class="stats"><span>z = 2.71</span><span>p = 0.0067</span><span>P(B beats A) = 99.7%</span><span>relative uplift +18%</span><span>revenue per session €4.85 → €5.93</span></p><p class="take"><b>Ship variant B with a guarded rollout.</b> Guardrails after rollout: mobile conversion rate, revenue per session, refunds.</p>
-</div>
-</div>
-<div class="card" style="margin-top:16px">
-<h3>Budget move</h3>
-<p class="note">Attribution-driven and saturation-aware: a square-root response curve per channel.</p>
-<div class="move"><span>Paid Social</span><span class="arrow">→</span><span>Display</span><span class="amt">€4,197</span></div><p class="note">Expected under the saturation model: <b>+16 conversions</b> and <b>+€1,458</b> revenue on €38,331 of paid spend. The move is capped at 15% of paid spend and 50% of the donor budget; Email is held because its volume is list-driven, not spend-driven.</p><p class="take">Directional: each curve is fitted through one observed point, so this sizes the next spend test rather than replacing it.</p>
-</div>
-</section>
 </main>
 <footer><div class="wrap">
-<p>Generated by <code>src/build_web_dashboard.py</code> from the committed analysis outputs; every headline figure is recomputed with pandas, DuckDB and statsmodels in <a href="https://github.com/errer441122/digital-campaign-performance-dashboard/blob/main/notebooks/cross_check.ipynb">the cross-check notebook</a>.</p>
-<p>Real data: Chen, D. (2019) <i>Online Retail II</i>, UCI Machine Learning Repository, CC BY 4.0 — <a href="https://github.com/errer441122/digital-campaign-performance-dashboard/blob/main/data/REAL_DATA_PROVENANCE.md">provenance and cleaning rules</a>. Simulated data is disclosed in the <a href="https://github.com/errer441122/digital-campaign-performance-dashboard/blob/main/data/DATA_CARD.md">data card</a>. Relationships are observational, not causal.</p>
+<p>Generated by <code>src/build_web_dashboard.py</code> from the committed analysis outputs; every headline figure is recomputed with pandas and DuckDB in <a href="https://github.com/errer441122/digital-campaign-performance-dashboard/blob/main/notebooks/cross_check.ipynb">the cross-check notebook</a>.</p>
+<p>Data: Chen, D. (2019) <i>Online Retail II</i>, UCI Machine Learning Repository, CC BY 4.0 — <a href="https://github.com/errer441122/digital-campaign-performance-dashboard/blob/main/data/REAL_DATA_PROVENANCE.md">provenance and cleaning rules</a>. Relationships are observational, not causal.</p>
 </div></footer>
 </body>
 </html>

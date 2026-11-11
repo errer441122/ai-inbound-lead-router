@@ -1,41 +1,33 @@
-"""Customer lifecycle + lead scoring + GDPR consent — **hybrid** analysis.
+"""Customer lifecycle stages from purchase behaviour.
 
-Two clearly separated layers:
-
-A. **Customer lifecycle (REAL).** Derived purely from real purchase
-   behaviour in `data/online_retail_orders.csv` (Online Retail II, UCI,
-   CC BY 4.0): recency and frequency map every customer to New / Repeat /
-   At risk / Dormant / Churned. No pre-purchase funnel stages
-   (Subscriber/Lead/MQL/SQL) — those need marketing-engagement data the
-   transactional dataset does not contain.
-
-B. **Lead scoring & consent (SIMULATED, disclosed).** Online Retail II has
-   no engagement signals and no consent status, and no permissive public
-   dataset carries per-contact consent. So the lead score and the GDPR
-   suppression gate run on the clearly-labelled synthetic overlay
-   (`data/crm_engagement_overlay.csv`, keyed to the real customer IDs).
-   Consent is a hard gate, never a score term.
+Runs on `data/online_retail_orders.csv` (Online Retail II, UCI, CC BY 4.0).
+Recency and order count put every customer into one stage: New, Repeat,
+At risk, Dormant or Churned. The same thresholds drive the win-back segment
+in the lifecycle-automation-lab repo.
 
 Pure standard library.
 """
 
 from __future__ import annotations
 
-import csv
 import json
-from collections import defaultdict
-from datetime import date
 from pathlib import Path
 
 from crm_retention import read_orders, reference_date
 
 ROOT = Path(__file__).resolve().parents[1]
-OVERLAY_PATH = ROOT / "data" / "crm_engagement_overlay.csv"
 ANALYSIS_DIR = ROOT / "analysis"
 REPORT_PATH = ANALYSIS_DIR / "crm_lifecycle.md"
 METRICS_PATH = ANALYSIS_DIR / "crm_lifecycle_metrics.json"
 
 LIFECYCLE_ORDER = ["New", "Repeat", "At risk", "Dormant", "Churned"]
+STAGE_RULE = {
+    "New": "last order within 90 days, 1 order",
+    "Repeat": "last order within 90 days, 2+ orders",
+    "At risk": "last order 91-180 days ago",
+    "Dormant": "last order 181-365 days ago",
+    "Churned": "last order more than 365 days ago",
+}
 STAGE_ACTION = {
     "New": "Onboarding / second-purchase nudge",
     "Repeat": "Loyalty / cross-sell flow",
@@ -45,8 +37,18 @@ STAGE_ACTION = {
 }
 
 
-def real_lifecycle() -> dict[str, dict[str, object]]:
-    """Per-customer lifecycle from REAL purchase recency/frequency."""
+def stage_for(recency_days: int, orders: int) -> str:
+    if recency_days <= 90:
+        return "Repeat" if orders >= 2 else "New"
+    if recency_days <= 180:
+        return "At risk"
+    if recency_days <= 365:
+        return "Dormant"
+    return "Churned"
+
+
+def lifecycle() -> dict[str, dict[str, object]]:
+    """Per-customer stage from purchase recency and frequency."""
     orders = read_orders()
     as_of = reference_date(orders)
     agg: dict[str, dict[str, object]] = {}
@@ -60,191 +62,62 @@ def real_lifecycle() -> dict[str, dict[str, object]]:
     out: dict[str, dict[str, object]] = {}
     for cid, a in agg.items():
         recency = (as_of - a["last"]).days
-        if recency <= 90:
-            stage = "Repeat" if a["orders"] >= 2 else "New"
-        elif recency <= 180:
-            stage = "At risk"
-        elif recency <= 365:
-            stage = "Dormant"
-        else:
-            stage = "Churned"
         out[cid] = {
             "orders": a["orders"],
             "recency_days": recency,
             "monetary_gbp": round(a["monetary"], 2),
-            "stage": stage,
+            "stage": stage_for(recency, a["orders"]),
         }
     return out
 
 
-def read_overlay() -> dict[str, dict[str, object]]:
-    out: dict[str, dict[str, object]] = {}
-    with OVERLAY_PATH.open(newline="", encoding="utf-8") as fh:
-        for r in csv.DictReader(fh):
-            out[r["customer_id"]] = {
-                "consent": r["consent_status"],
-                "page_views": int(r["page_views"]),
-                "key_page_views": int(r["key_page_views"]),
-                "email_clicks": int(r["email_clicks"]),
-                "form_submits": int(r["form_submits"]),
-                "demo_request": int(r["demo_request"]),
-                "webinar_signup": int(r["webinar_signup"]),
-            }
-    return out
-
-
-def lead_score(e: dict[str, object]) -> dict[str, object]:
-    """Transparent capped additive score (0-100) with a reason."""
-    parts: list[tuple[str, int]] = []
-    if e["demo_request"]:
-        parts.append(("demo request", 25))
-    if e["key_page_views"]:
-        parts.append((f"{e['key_page_views']} key-page views", min(24, 6 * e["key_page_views"])))
-    if e["form_submits"]:
-        parts.append((f"{e['form_submits']} form submits", min(18, 9 * e["form_submits"])))
-    if e["email_clicks"]:
-        parts.append((f"{e['email_clicks']} email clicks", min(15, 3 * e["email_clicks"])))
-    if e["webinar_signup"]:
-        parts.append(("webinar signup", 8))
-    if e["page_views"]:
-        parts.append((f"{e['page_views']} page views", min(10, e["page_views"])))
-    raw = sum(p[1] for p in parts)
-    score = max(0, min(100, raw))
-    pos = sorted(parts, key=lambda p: -p[1])[:3]
-    return {"score": score, "reason": "; ".join(p[0] for p in pos) or "no engagement signals"}
-
-
 def run() -> dict[str, object]:
-    lifecycle = real_lifecycle()
-    overlay = read_overlay()
-    total = len(lifecycle)
+    customers = lifecycle()
+    total = len(customers)
+    total_revenue = sum(c["monetary_gbp"] for c in customers.values())
 
-    by_stage: dict[str, list[str]] = defaultdict(list)
-    for cid, lc in lifecycle.items():
-        by_stage[lc["stage"]].append(cid)
-
-    enriched = {}
-    for cid, lc in lifecycle.items():
-        e = overlay.get(cid)
-        sc = lead_score(e) if e else {"score": 0, "reason": "no overlay"}
-        eligible = bool(e) and e["consent"] == "opted_in"
-        enriched[cid] = {**lc, "score": sc["score"], "reason": sc["reason"],
-                         "consent": e["consent"] if e else "unknown",
-                         "campaign_eligible": eligible}
-
-    funnel = []
+    stages = []
     for stage in LIFECYCLE_ORDER:
-        ids = by_stage.get(stage, [])
-        n = len(ids)
-        if n == 0:
+        members = [c for c in customers.values() if c["stage"] == stage]
+        if not members:
             continue
-        elig = sum(1 for c in ids if enriched[c]["campaign_eligible"])
-        funnel.append({
+        revenue = sum(c["monetary_gbp"] for c in members)
+        stages.append({
             "stage": stage,
-            "customers": n,
-            "share": round(n / total, 4),
-            "avg_lead_score": round(sum(enriched[c]["score"] for c in ids) / n, 1),
-            "campaign_eligible": elig,
-            "suppressed": n - elig,
+            "rule": STAGE_RULE[stage],
+            "customers": len(members),
+            "share": round(len(members) / total, 4),
+            "revenue_gbp": round(revenue, 2),
+            "revenue_share": round(revenue / total_revenue, 4),
             "recommended_action": STAGE_ACTION[stage],
         })
 
-    supp: dict[str, int] = defaultdict(int)
-    for c in enriched.values():
-        if not c["campaign_eligible"]:
-            supp[c["consent"]] += 1
-    eligible_total = sum(1 for c in enriched.values() if c["campaign_eligible"])
-
-    # Priority: real at-risk/dormant value customers who are reachable.
-    reachable_value = sorted(
-        [c for c in enriched.values()
-         if c["campaign_eligible"] and c["stage"] in ("At risk", "Dormant")],
-        key=lambda c: c["monetary_gbp"], reverse=True,
-    )[:10]
-    top = [
-        {"stage": c["stage"], "monetary_gbp": c["monetary_gbp"],
-         "lead_score": c["score"], "why": c["reason"]}
-        for c in reachable_value
-    ]
-
     return {
-        "real_dataset": "Online Retail II (UCI, CC BY 4.0)",
-        "overlay": "SIMULATED engagement/consent (disclosed) keyed to real customer IDs",
+        "dataset": "Online Retail II (UCI, CC BY 4.0)",
         "customers": total,
-        "lifecycle_funnel_real": funnel,
-        "consent_overlay": {
-            "eligible": eligible_total,
-            "eligible_rate": round(eligible_total / total, 4),
-            "suppressed": total - eligible_total,
-            "suppressed_by_reason": dict(supp),
-        },
-        "priority_reachable_value_accounts": top,
-        "scoring_model": {
-            "demo_request": 25, "key_page_view": "6 each (cap 24)",
-            "form_submit": "9 each (cap 18)", "email_click": "3 each (cap 15)",
-            "webinar_signup": 8, "page_view": "1 each (cap 10)",
-            "note": "Lifecycle is REAL (purchase-based); score/consent are a "
-                    "disclosed synthetic overlay. Consent is a hard gate, "
-                    "never a score term.",
-        },
+        "stages": stages,
     }
 
 
 def _md(r: dict[str, object]) -> str:
     L: list[str] = []
-    L.append("# Customer Lifecycle, Lead Scoring & Consent (hybrid)\n")
+    L.append("# Customer lifecycle stages\n")
     L.append(
-        f"**Lifecycle is REAL** — derived from purchase behaviour of "
-        f"{r['customers']:,} customers in *Online Retail II* (UCI, CC BY 4.0). "
-        f"**Lead score and consent are a disclosed SIMULATED overlay** keyed "
-        f"to the real customer IDs (no public dataset carries engagement or "
-        f"consent — see `data/DATA_CARD.md` / `data/REAL_DATA_PROVENANCE.md`).\n"
+        f"Purchase recency and order count for {r['customers']:,} customers in "
+        f"*Online Retail II* (UCI, CC BY 4.0). Revenue is each stage's historical "
+        f"spend, so it shows what is at stake, not a forecast.\n"
     )
-
-    L.append("## A. Customer lifecycle — REAL (purchase recency/frequency)\n")
-    L.append("| Stage | Customers | Share | Avg lead score* | Reachable* | Suppressed* | Recommended action |")
-    L.append("| --- | ---: | ---: | ---: | ---: | ---: | --- |")
-    for f in r["lifecycle_funnel_real"]:
+    L.append("| Stage | Rule | Customers | Share | Historical revenue | Revenue share | Recommended action |")
+    L.append("| --- | --- | ---: | ---: | ---: | ---: | --- |")
+    for s in r["stages"]:
         L.append(
-            f"| {f['stage']} | {f['customers']:,} | {f['share']:.0%} | "
-            f"{f['avg_lead_score']:.0f} | {f['campaign_eligible']:,} | "
-            f"{f['suppressed']:,} | {f['recommended_action']} |"
+            f"| {s['stage']} | {s['rule']} | {s['customers']:,} | {s['share']:.0%} | "
+            f"GBP {s['revenue_gbp']:,.0f} | {s['revenue_share']:.0%} | {s['recommended_action']} |"
         )
     L.append("")
-    L.append("_\\* lead score / reachable / suppressed come from the simulated overlay (Section B)._\n")
-
-    co = r["consent_overlay"]
-    L.append("## B. Lead scoring & GDPR consent — SIMULATED overlay (disclosed)\n")
     L.append(
-        f"On the synthetic overlay, **{co['eligible']:,} of {r['customers']:,} "
-        f"customers ({co['eligible_rate']:.0%}) are campaign-eligible** "
-        f"(`opted_in`). {co['suppressed']:,} are suppressed: "
-        + ", ".join(f"{v:,} {k}" for k, v in sorted(co["suppressed_by_reason"].items()))
-        + ". A high lead score never overrides missing consent.\n"
-    )
-
-    L.append("## Priority: reachable high-value lapsing customers\n")
-    L.append(
-        "Real At-risk/Dormant customers ranked by **real** lifetime spend, "
-        "filtered to consent-eligible (simulated) — the list a CRM team would "
-        "action first.\n"
-    )
-    L.append("| Stage | Real spend | Lead score* | Why* |")
-    L.append("| --- | ---: | ---: | --- |")
-    for t in r["priority_reachable_value_accounts"]:
-        L.append(
-            f"| {t['stage']} | GBP {t['monetary_gbp']:,.0f} | "
-            f"{t['lead_score']} | {t['why']} |"
-        )
-    L.append("")
-
-    L.append("## Boundary\n")
-    L.append(
-        "Hybrid by necessity: the lifecycle is real public transactional "
-        "data (Online Retail II, UCI, CC BY 4.0); the engagement and consent "
-        "columns are clearly-labelled simulated overlay because no permissive "
-        "public dataset carries them. The simulated part is disclosed in "
-        "`data/DATA_CARD.md`; relationships are observational, not causal.\n"
+        "The thresholds are a convention, not something this dataset proves. "
+        "Relationships are observational, not causal.\n"
     )
     return "\n".join(L)
 

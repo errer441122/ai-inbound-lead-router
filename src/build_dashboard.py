@@ -2,11 +2,9 @@
 CRM analysis (UCI Online Retail II, CC BY 4.0 — see
 `data/REAL_DATA_PROVENANCE.md`).
 
-Replaces the previous hand-drawn, simulated-campaign preview: the hero
-image now shows the real RFM segmentation, CLV-by-country and cohort
-retention computed by `crm_retention.py`. Every text cell written to the
-workbook is still neutralised against spreadsheet formula/DDE injection
-(kept verbatim, with its test).
+The image shows the RFM segmentation, CLV-by-country and cohort retention
+computed by `crm_retention.py`. Every text cell written to the workbook is
+neutralised against spreadsheet formula/DDE injection.
 
 matplotlib (Agg, headless) + openpyxl.
 """

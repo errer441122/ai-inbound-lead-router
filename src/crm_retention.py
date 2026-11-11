@@ -12,9 +12,7 @@ team ships:
    to named lifecycle segments.
 2. **Cohort retention** — monthly repeat-purchase retention by signup month.
 3. **Historical CLV by country** — revenue per acquired customer (Online
-   Retail II has no media/channel field, so the real breakdown is by
-   country; the channel/CPA-vs-LTV bridge lives on the clearly-labelled
-   simulated side).
+   Retail II has no media/channel field, so the breakdown is by country).
 4. **Lifecycle → automation map** — the flow each RFM segment should enter.
 
 The reference date for recency is the dataset's last order date + 1 day
