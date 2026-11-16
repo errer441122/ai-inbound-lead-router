@@ -1,43 +1,76 @@
-# CRM retention analysis: RFM, cohorts and customer value
+# CRM retention practice: RFM, lifecycle and repeat purchases
 
-An analysis exercise on a public dataset: 36,969 orders from 5,878 customers of
-a UK online retailer (UCI *Online Retail II*, December 2009 to December 2011,
-GBP). It is practice on public data, not client work.
+A practice project on a public dataset. I wanted to answer a question every
+online shop has: **which customers bring the revenue, who is about to leave,
+and what should the CRM team send to each group?**
 
-**[Open the live dashboard](https://errer441122.github.io/digital-campaign-performance-dashboard/)**
+The data is 36,969 orders from 5,878 customers of a UK online retailer
+(UCI *Online Retail II*, December 2009 to December 2011, in pounds). It is not
+client work.
 
-[![The live dashboard: headline figures and RFM segments](assets/web_dashboard.png)](https://errer441122.github.io/digital-campaign-performance-dashboard/)
+**[Open the live page](https://errer441122.github.io/digital-campaign-performance-dashboard/)**
+
+[![The live page: headline figures and RFM segments](assets/web_dashboard.png)](https://errer441122.github.io/digital-campaign-performance-dashboard/)
 
 ## What the data says
 
-- **Champions are 26% of customers and 71% of revenue.** Keeping them comes
-  before buying new reach.
-- **A customer in Germany has spent 48% more than one in the UK** (£3,986
-  against £2,700 per customer), so a higher acquisition cost can still pay back
-  there.
-- **588 customers are "at risk"**: their last order was 91 to 180 days ago and
+- **Champions are 26% of customers and 71% of revenue.** Keeping them matters
+  more than finding new customers.
+- **588 customers are "at risk".** Their last order was 91 to 180 days ago and
   they have spent £1.06M so far. That is the win-back list.
-- **Between 9% and 35% of a cohort orders again the month after its first
-  purchase.** The December 2009 cohort is the highest because it also contains
-  customers acquired before the data starts.
+- **About one new customer in five orders again the following month** (21%),
+  and the share is still 18% six months later.
+- **A customer in Germany has spent 48% more than one in the UK** (£3,986
+  against £2,700 per customer).
 
-Full tables: [RFM, cohorts and value by country](analysis/crm_retention.md) ·
+Full tables: [RFM segments, repeat purchases and value by country](analysis/crm_retention.md) ·
 [lifecycle stages](analysis/crm_lifecycle.md).
 
-The lifecycle thresholds are the ones my
-[lifecycle-automation-lab](https://github.com/errer441122/lifecycle-automation-lab)
+## The marketing concepts I used
+
+| Concept | In plain words | What it is for |
+| --- | --- | --- |
+| **RFM segmentation** | Score each customer on how recently, how often and how much they buy | Decide who gets which message |
+| **Lifecycle stages** | New, Repeat, At risk, Dormant, Churned, based on the date of the last order | Trigger the right flow at the right time |
+| **Cohort retention** | Of the customers who first bought in a given month, how many come back in the next months | See whether customers return, and how fast they stop |
+| **Revenue per customer by country** | Total spend divided by the number of customers | Compare how much a customer is worth in each market |
+
+The lifecycle rules are the same ones my
+[Lifecycle Automation Lab](https://github.com/errer441122/lifecycle-automation-lab)
 uses to trigger a win-back flow in Klaviyo.
+
+## Real-World Business Application (Next Steps)
+
+This is what I would do with these numbers in a real shop. They are
+recommendations, not results: the dataset has no email or advertising data, so
+nothing here has been tested on customers.
+
+1. **Stop sending the same discount to everyone.** RFM shows who needs a
+   reason to come back and who does not. The offer goes to the win-back group
+   (At risk, Can't lose them). Champions get early access or a thank-you
+   instead: they would have bought anyway, so a discount only costs margin.
+   Long-inactive, low-value customers get one cheap reminder and then leave
+   the mailing list, which also protects deliverability.
+2. **Start the win-back at day 91, not after a year.** The at-risk group is a
+   short list with a recent purchase history. The group silent for more than a
+   year is 2.7 times larger, and the longer the silence, the harder the return.
+3. **Set the acquisition budget by market.** If a customer in Germany spends
+   48% more over time, paying more to acquire one there can still make sense.
+   One blended target for every country hides that.
+4. **Measure it on real data.** The next step is to run this on a real store
+   export (Shopify orders, Klaviyo campaigns) and compare repeat purchases
+   between customers who received a flow and customers who did not.
 
 ## What is in here
 
 | Path | What it does |
 | --- | --- |
-| `src/prepare_real_data.py` | Downloads the UCI file (SHA256-pinned) and cleans it into `data/online_retail_orders.csv` |
-| `src/crm_retention.py` | RFM segments, cohort retention, revenue per customer by country |
-| `src/crm_lifecycle.py` | Lifecycle stages: New, Repeat, At risk, Dormant, Churned |
-| `src/build_web_dashboard.py` | The live page, `docs/index.html` |
-| `src/build_dashboard.py` | Excel workbook `dashboard/crm_dashboard.xlsx` and a static preview image |
-| `notebooks/cross_check.ipynb` | Recomputes the headline numbers with pandas and DuckDB SQL; CI fails if they differ |
+| `analysis/` | The result tables, in Markdown and JSON |
+| `docs/index.html` | The live page, generated from the results |
+| `dashboard/crm_dashboard.xlsx` | The same tables as an Excel workbook |
+| `src/` | The Python scripts that clean the data and build everything above |
+| `notebooks/cross_check.ipynb` | A second calculation of the main numbers, to catch mistakes |
+| `tests/` | Automatic checks that run on every change |
 
 ## Run it
 
@@ -51,37 +84,25 @@ python src/build_web_dashboard.py
 python -m pytest -q
 ```
 
-`python src/prepare_real_data.py` is only needed to rebuild the orders file
-from the original UCI download.
-
-## Data
+## Data and limits
 
 Chen, D. (2019). *Online Retail II*. UCI Machine Learning Repository, CC BY 4.0.
-Source, cleaning rules and checksums are in
+Source and cleaning rules are in
 [`data/REAL_DATA_PROVENANCE.md`](data/REAL_DATA_PROVENANCE.md).
 
-One cleaning detail worth knowing: the two yearly sheets of the source file
-overlap on 1 to 9 December 2010. Reading both counts 776 orders twice and
-overstates revenue by 1.8%. The preparation script reads each invoice once and
-a test fails if that window looks doubled again.
-
-## Limits
-
-- This is a public dataset that many people practise on. It has no advertising,
-  web analytics or email data, so nothing here measures a campaign.
-- "Customer value" is historical revenue per customer, not a forecast.
-- The relationships are observational, not causal.
-
-## What changed in November 2026
-
-Earlier versions also had campaign reporting, attribution, an A/B test and a
-budget model, all running on data I had simulated. I removed them: numbers I
-generated myself cannot show how a campaign performs. The repository keeps its
-original name so existing links keep working.
+- This is a public dataset that many people practise on. It has no
+  advertising, web analytics or email data, so nothing here measures a
+  campaign.
+- "Revenue per customer" is what customers have spent so far, not a forecast.
+- The numbers describe what happened. They do not prove what caused it.
+- Earlier versions of this repository also had campaign reports built on data
+  I had simulated. I removed them in November 2026, because numbers I generated
+  myself cannot show how a campaign performs. The repository keeps its original
+  name so existing links keep working.
 
 ## How I built this
 
-Built with AI coding assistants as a pair programmer: they drafted most of the
-code and docs. My part: choosing the question and the data, defining the rules
-and metrics, checking results against the source data and deciding what to
-report.
+I am a Digital Marketing student, not a developer. I built this with AI coding
+assistants: they wrote most of the code. My part was choosing the question and
+the data, defining the segments and the rules, checking the results against
+the source data and deciding what to report.

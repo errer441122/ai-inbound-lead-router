@@ -1,11 +1,12 @@
-"""Build the public web dashboard (`docs/index.html`, served by GitHub Pages).
+"""Build the public page (`docs/index.html`, served by GitHub Pages).
 
 One self-contained HTML file: HTML/CSS charts, no JavaScript, no CDN, no web
 fonts, light and dark mode, readable on a phone. Every number is read from
-the JSON `crm_retention.py` writes, so the page cannot drift from
-`analysis/` — CI regenerates it and fails if the committed copy differs.
+the JSON that `crm_retention.py` and `crm_lifecycle.py` write, so the page
+cannot drift from `analysis/`. CI regenerates it and fails if the committed
+copy differs.
 
-Run after crm_retention.py. Pure standard library.
+Run after crm_retention.py and crm_lifecycle.py. Pure standard library.
 """
 
 from __future__ import annotations
@@ -21,104 +22,190 @@ REPO = "https://github.com/errer441122/digital-campaign-performance-dashboard"
 PAGE = "https://errer441122.github.io/digital-campaign-performance-dashboard/"
 MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
 
-# Sequential blue ramp (light -> dark) for the retention heatmap. Cells from
-# DARK_FROM onwards take white text.
-RAMP = ["#eaf2fd", "#d4e4fb", "#b9d3f7", "#98bef1", "#75a6ea", "#538ce0",
-        "#3672cf", "#235ab5", "#184795"]
-DARK_FROM = 5
+# RFM segments grouped by the job the CRM team has to do with them. A segment
+# the analysis adds later lands in the last group instead of disappearing.
+JOBS = [
+    ("Protect", "Your best customers. Reward them, do not discount them.",
+     ["Champions", "Loyal customers"]),
+    ("Develop", "Recent or cooling buyers. The goal is the next order.",
+     ["New / promising", "Needs attention"]),
+    ("Win back", "They used to buy and stopped. This is where an offer earns its cost.",
+     ["At risk", "Can't lose them"]),
+    ("Wind down", "Long inactive, low value. One cheap reminder, then stop mailing.",
+     ["Hibernating"]),
+]
+
+# Heat steps: how much of the accent colour is mixed into the surface. The
+# range is capped so the cell text keeps a 4.5:1 contrast in both themes;
+# from FLIP on, the dark theme switches to dark text (see tests).
+HEAT = [8, 15, 22, 29, 36, 43, 50, 60, 70]
+FLIP = 7
+# Lifecycle stages run from active to lapsed, so one hue from strong to faint.
+STAGE_MIX = [100, 78, 54, 34, 18]
 
 CSS = """
 :root {
   color-scheme: light;
-  --page: #f5f6f8; --surface: #ffffff; --ink: #0f172a; --ink-2: #475569; --muted: #64748b;
-  --line: #e2e8f0; --track: #edf1f6; --shadow: 0 1px 2px rgba(15,23,42,.06);
-  --accent: #2563eb; --accent-3: #0f9488; --real: #15803d; --hatch: #cbd5e1;
+  --page: #f4f6f4; --surface: #fbfcfb; --ink: #101614; --ink-2: #47524d; --muted: #6a7570;
+  --line: #dde3df; --rest: #d5dcd8; --accent: #0b6e4f; --heat: #145c40; --on-accent: #ffffff;
+  --tint: #e7f1ec; --cell-hi: #101614;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --page: #0b1020; --surface: #121a2b; --ink: #eef2f7; --ink-2: #c3ccd9; --muted: #93a0b4;
-    --line: #23304a; --track: #1d2840; --shadow: none;
-    --accent: #5b9cf6; --accent-3: #2dc4b0; --real: #4ade80; --hatch: #33415c;
+    --page: #0c1210; --surface: #121a17; --ink: #edf2ef; --ink-2: #b9c4be; --muted: #8b9690;
+    --line: #25302b; --rest: #2b3833; --accent: #5fd3a4; --heat: #5fd3a4; --on-accent: #06100c;
+    --tint: #16241e; --cell-hi: #06100c;
   }
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body { margin: 0; background: var(--page); color: var(--ink);
-  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-a { color: var(--accent); }
+  font: 16px/1.6 "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; }
+a { color: var(--accent); text-underline-offset: 3px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-.wrap { max-width: 1160px; margin: 0 auto; padding: 0 20px; }
-header.top { position: sticky; top: 0; z-index: 2; background: var(--page); background: color-mix(in srgb, var(--page) 88%, transparent);
-  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
-header.top .wrap { display: flex; align-items: center; gap: 20px; height: 52px; overflow-x: auto; white-space: nowrap; }
-header.top b { font-size: 14px; }
-header.top nav { display: flex; gap: 16px; font-size: 14px; }
-header.top nav a { color: var(--ink-2); text-decoration: none; }
-header.top nav a:hover { color: var(--ink); }
-header.top .src { margin-left: auto; font-size: 14px; }
-.hero { padding: 36px 0 8px; }
-h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.15; margin: 0 0 10px; letter-spacing: -0.02em; }
-.lead { color: var(--ink-2); max-width: 74ch; margin: 0 0 14px; font-size: 16px; }
-.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; }
-.chip { font-size: 13px; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line);
-  border-radius: 999px; padding: 4px 12px; }
-.tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
-  padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; vertical-align: 2px; }
-.tag.real { color: var(--real); }
-.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
-.card, .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
-.kpi { padding: 16px 18px; }
-.kpi span { display: block; color: var(--ink-2); font-size: 13px; }
-.kpi b { display: block; font-size: 30px; line-height: 1.15; margin: 6px 0 4px; letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums; }
-.kpi small { color: var(--muted); font-size: 13px; }
-.takeaways { padding: 18px 22px; margin-bottom: 30px; }
-.takeaways h2 { font-size: 15px; margin: 0 0 8px; }
-.takeaways ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
-.takeaways li::marker { color: var(--muted); font-weight: 600; }
-section.block { margin: 0 0 34px; }
-.block > h2 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
-.block > p.desc { color: var(--ink-2); margin: 0 0 14px; max-width: 80ch; }
-.card { padding: 20px 22px; min-width: 0; }
-.card h3 { font-size: 16px; margin: 0 0 4px; }
-.card .note { color: var(--ink-2); font-size: 14px; margin: 0 0 14px; }
-.card .take { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.top { position: sticky; top: 0; z-index: 2; background: var(--page); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; gap: 28px; height: 60px; white-space: nowrap; overflow-x: auto; }
+.top b { font-size: 15px; letter-spacing: -0.01em; }
+.top nav { display: flex; gap: 22px; font-size: 14.5px; }
+.top nav a { color: var(--ink-2); text-decoration: none; }
+.top nav a:hover, .top nav a:focus-visible { color: var(--ink); text-decoration: underline; }
+.top .src { margin-left: auto; font-size: 14.5px; }
+
+.hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 56px; align-items: center;
+  padding: 72px 0 64px; }
+.eyebrow { font-size: 12.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--accent); margin: 0 0 18px; }
+h1 { font-family: "Segoe UI Variable Display", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  font-size: clamp(32px, 4.2vw, 48px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 650; margin: 0 0 20px;
+  text-wrap: balance; }
+.lead { font-size: 18px; color: var(--ink-2); max-width: 46ch; margin: 0 0 30px; }
+.cta { display: inline-block; background: var(--accent); color: var(--on-accent); text-decoration: none; font-weight: 600;
+  font-size: 15.5px; padding: 12px 24px; border-radius: 999px; transition: transform .15s ease; }
+.cta:hover { transform: translateY(-1px); }
+.cta:active { transform: translateY(1px); }
+.cta:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.split { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 30px 30px 26px; }
+.split figcaption { font-size: 15px; color: var(--ink-2); margin: 0 0 22px; }
+.split .row { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 6px 16px; margin-bottom: 22px; }
+.split .row span { font-size: 14px; color: var(--ink-2); }
+.split .row b { font-size: 40px; line-height: 1; letter-spacing: -0.03em; font-weight: 650; }
+.whole { grid-column: 1 / -1; height: 26px; border-radius: 6px; background: var(--rest); overflow: hidden; }
+.whole i { display: block; height: 100%; background: var(--accent); border-radius: 6px 0 0 6px; }
+.key { display: flex; gap: 20px; font-size: 13.5px; color: var(--ink-2); margin: 0; }
+.key i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 7px; vertical-align: -1px; }
+
+.figures { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line); margin: 0 0 88px; }
+.figures div { padding: 26px 24px 24px 0; }
+.figures div + div { padding-left: 24px; border-left: 1px solid var(--line); }
+.figures dt { font-size: 14px; color: var(--ink-2); }
+.figures dd { margin: 4px 0 2px; font-size: 32px; line-height: 1.15; letter-spacing: -0.02em; font-weight: 650; }
+.figures small { font-size: 13.5px; color: var(--muted); }
+
+section.block { margin: 0 0 96px; }
+h2 { font-family: "Segoe UI Variable Display", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  font-size: clamp(26px, 3vw, 34px); line-height: 1.15; letter-spacing: -0.025em; font-weight: 650; margin: 0 0 12px; }
+.block > p.desc { color: var(--ink-2); max-width: 62ch; margin: 0 0 34px; font-size: 17px; }
+.aside { color: var(--ink-2); font-size: 14.5px; max-width: 78ch; margin: 18px 0 0; }
+
+.jobs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.job { border: 1px solid var(--line); border-radius: 12px; padding: 24px 26px 12px; background: var(--surface); }
+.job.lead-job { background: var(--tint); border-color: transparent; }
+.job h3 { margin: 0 0 4px; font-size: 20px; letter-spacing: -0.015em; }
+.job > p { margin: 0 0 14px; color: var(--ink-2); font-size: 14.5px; }
+.seg { padding: 14px 0; }
+.seg + .seg { border-top: 1px solid var(--line); }
+.seg h4 { margin: 0; font-size: 16px; }
+.seg .flow { margin: 0 0 10px; font-size: 14px; color: var(--ink-2); }
+.pair { display: grid; grid-template-columns: 84px 1fr; align-items: center; gap: 4px 12px; font-size: 13.5px; color: var(--ink-2); }
+.meter { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.meter i { display: block; height: 8px; border-radius: 4px; background: var(--accent); min-width: 3px; }
+.meter i.soft { opacity: .45; }
+.meter span { color: var(--ink); }
+.meter em { font-style: normal; color: var(--muted); margin-left: 5px; }
+
+.stack { display: flex; height: 34px; border-radius: 8px; overflow: hidden; gap: 2px; margin: 0 0 22px; }
+.stack i { display: block; height: 100%; min-width: 4px; }
+.stages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px; }
+.stage h3 { margin: 0 0 2px; font-size: 16px; }
+.stage h3 i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 8px; }
+.stage b { display: block; font-size: 24px; letter-spacing: -0.02em; font-weight: 650; }
+.stage p { margin: 6px 0 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.45; }
+.stage p.do { color: var(--ink); }
+.callout { margin: 34px 0 0; padding: 22px 26px; border-radius: 12px; background: var(--tint); font-size: 17px; max-width: 78ch; }
+
+.curve { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 18px; align-items: end; max-width: 760px; }
+.curve div { display: flex; flex-direction: column; justify-content: flex-end; height: 190px; }
+.curve b { font-size: 24px; letter-spacing: -0.02em; font-weight: 650; }
+.curve i { display: block; background: var(--accent); border-radius: 6px 6px 0 0; margin-top: 6px; }
+.curve span { font-size: 13.5px; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 8px; }
+details { margin-top: 30px; }
+summary { cursor: pointer; font-weight: 600; font-size: 15px; color: var(--accent); width: fit-content; }
+.scroll { overflow-x: auto; margin-top: 16px; }
 table { border-collapse: collapse; width: 100%; font-size: 14px; }
-th, td { padding: 7px 8px; text-align: left; vertical-align: middle; }
-thead th { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em;
-  border-bottom: 1px solid var(--line); }
-tbody tr + tr > * { border-top: 1px solid var(--line); }
-th[scope=row] { font-weight: 600; }
-th[scope=row] small { display: block; font-weight: 400; color: var(--muted); font-size: 12.5px; }
-.n, .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.cell { display: flex; align-items: center; gap: 10px; }
-.bar { flex: 1; min-width: 36px; height: 10px; border-radius: 5px; background: var(--track); overflow: hidden; }
-.bar i { display: block; height: 100%; border-radius: 5px; background: var(--accent); }
-.bar.rev i { background: var(--accent-3); }
-.num em { font-style: normal; color: var(--muted); margin-left: 4px; }
-.cell .num { min-width: 6.5em; }
-.scroll { overflow-x: auto; }
+th, td { padding: 8px 10px; text-align: left; }
+thead th { font-size: 13px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--line); }
+.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .heat { font-size: 13px; }
 .heat th, .heat td { padding: 5px 6px; }
-.heat td.c { text-align: center; color: #0f1b2d; font-variant-numeric: tabular-nums; border: 2px solid var(--surface); }
-.heat td.c.dk { color: #ffffff; }
-.heat td.na { text-align: center; color: var(--muted); border: 2px solid var(--surface);
-  background: repeating-linear-gradient(135deg, transparent 0 5px, var(--hatch) 5px 6px); }
-.scale { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); margin-top: 10px; flex-wrap: wrap; }
-.scale .ramp { width: 160px; height: 10px; border-radius: 5px; }
-.scale .na { display: inline-block; width: 22px; height: 12px; border-radius: 3px; vertical-align: -2px;
-  background: repeating-linear-gradient(135deg, transparent 0 4px, var(--hatch) 4px 5px); border: 1px solid var(--line); }
-footer { color: var(--ink-2); font-size: 13.5px; border-top: 1px solid var(--line); padding: 22px 0 40px; }
-footer p { margin: 0 0 8px; max-width: 95ch; }
-@media (max-width: 900px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 520px) {
-  .wrap { padding: 0 14px; } .kpi b { font-size: 24px; } .card { padding: 16px; }
-  .cell { flex-direction: column; align-items: stretch; gap: 4px; } .cell .num { text-align: left; min-width: 0; }
-  .cell .bar { flex: none; }
-  th, td { padding: 7px 6px; }
+.heat th[scope=row] { font-weight: 500; white-space: nowrap; }
+.heat td.c { text-align: center; font-variant-numeric: tabular-nums; border: 2px solid var(--page); color: var(--ink);
+  background: color-mix(in srgb, var(--heat) calc(var(--p) * 1%), var(--surface)); }
+.heat td.na { border: 2px solid var(--page);
+  background: repeating-linear-gradient(135deg, transparent 0 5px, var(--rest) 5px 6px); }
+@media (prefers-color-scheme: dark) { .heat td.c.hi { color: var(--cell-hi); } }
+.scale { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); margin-top: 12px; flex-wrap: wrap; }
+.scale .ramp { width: 150px; height: 10px; border-radius: 5px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--heat) 8%, var(--surface)), color-mix(in srgb, var(--heat) 70%, var(--surface))); }
+.scale .na { display: inline-block; width: 22px; height: 12px; border-radius: 3px; vertical-align: -2px; border: 1px solid var(--line);
+  background: repeating-linear-gradient(135deg, transparent 0 4px, var(--rest) 4px 5px); }
+
+.markets { max-width: 860px; }
+.markets td { padding: 14px 10px; }
+.markets tbody tr + tr > * { border-top: 1px solid var(--line); }
+.markets th[scope=row] { font-weight: 600; font-size: 16px; white-space: nowrap; }
+.markets .meter i { height: 12px; border-radius: 6px; }
+.markets .meter span { font-size: 16px; font-weight: 600; }
+
+.next { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; max-width: 820px; }
+.next article { padding: 26px 0; }
+.next article + article { border-top: 1px solid var(--line); }
+.next h3 { margin: 0 0 8px; font-size: 21px; letter-spacing: -0.015em; }
+.next p { margin: 0; color: var(--ink-2); }
+
+footer { border-top: 1px solid var(--line); padding: 30px 0 56px; color: var(--ink-2); font-size: 14.5px; }
+footer p { margin: 0 0 8px; max-width: 86ch; }
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; gap: 36px; padding: 44px 0 44px; }
+  .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figures div:nth-child(3) { padding-left: 0; border-left: 0; }
+  .figures div:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .jobs { grid-template-columns: 1fr; }
+  .stages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  section.block { margin-bottom: 68px; }
+  .figures { margin-bottom: 64px; }
 }
-@media print { header.top { position: static; } .card, .kpi { box-shadow: none; break-inside: avoid; } }
+@media (max-width: 520px) {
+  .wrap { padding: 0 16px; }
+  .top nav { display: none; }
+  .split { padding: 22px 20px 20px; }
+  .split .row b { font-size: 32px; }
+  .figures dd { font-size: 26px; }
+  .figures div { padding: 20px 14px 18px 0; }
+  .figures div + div { padding-left: 14px; }
+  .figures div:nth-child(3) { padding-left: 0; }
+  .job { padding: 20px 18px 8px; }
+  .stages { grid-template-columns: 1fr; gap: 18px; }
+  .curve { gap: 8px; } .curve b { font-size: 18px; } .curve div { height: 150px; }
+  .callout { padding: 18px 18px; font-size: 16px; }
+}
+@media print { .top { position: static; } }
 """
 
 
@@ -126,17 +213,12 @@ def _load(rel: str) -> dict:
     return json.loads((ROOT / rel).read_text(encoding="utf-8"))
 
 
-def _money(v: float, sym: str) -> str:
+def _money(v: float) -> str:
     if v >= 1e6:
-        return f"{sym}{v / 1e6:.1f}M"
+        return f"£{v / 1e6:.2f}M" if v < 1e7 else f"£{v / 1e6:.1f}M"
     if v >= 1e4:
-        return f"{sym}{v / 1e3:.0f}k"
-    return f"{sym}{v:,.0f}"
-
-
-def _signed(v: float, spec: str) -> str:
-    """Explicit sign with a true minus (−) instead of a hyphen."""
-    return format(v, "+" + spec).replace("-", "−")
+        return f"£{v / 1e3:.0f}k"
+    return f"£{v:,.0f}"
 
 
 def _month(ym: str) -> str:
@@ -144,44 +226,74 @@ def _month(ym: str) -> str:
     return f"{MONTHS[int(m) - 1]} {y}"
 
 
-def _bar(share: float, cls: str = "") -> str:
-    """A track with a fill of `share` (0..1) of its width."""
-    return f'<span class="bar {cls}"><i style="width:{max(share, 0.005) * 100:.1f}%"></i></span>'
+def _meter(share: float, label: str, soft: bool = False) -> str:
+    """A bar with no background track: its length is `share` of the cell."""
+    cls = ' class="soft"' if soft else ""
+    return f'<div class="meter"><i{cls} style="width:{max(share, 0.01) * 100:.1f}%"></i><span class="num">{label}</span></div>'
 
 
-def rfm_table(segs: list[dict], total_rev: float) -> str:
-    rows = []
-    for s in segs:
-        rev = s["revenue_gbp"] / total_rev
-        rows.append(
-            f'<tr><th scope="row">{escape(s["segment"])}<small>{escape(s["automation_flow"])}</small></th>'
-            f'<td><div class="cell">{_bar(s["customer_share"])}<span class="num">{s["customers"]:,}'
-            f'<em>{s["customer_share"]:.0%}</em></span></div></td>'
-            f'<td><div class="cell">{_bar(rev, "rev")}<span class="num">{_money(s["revenue_gbp"], "£")}'
-            f'<em>{rev:.0%}</em></span></div></td></tr>'
-        )
-    return ('<div class="scroll"><table><caption class="sr">Customers and revenue by RFM segment</caption>'
-            '<thead><tr><th scope="col">Segment → flow</th><th scope="col">Customers</th>'
-            f'<th scope="col">Revenue</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
+def jobs_grid(segs: list[dict], total_rev: float) -> str:
+    """RFM segments grouped by CRM job; bars are scaled to the largest share."""
+    by_name = {s["segment"]: s for s in segs}
+    groups = [(title, why, [by_name.pop(n) for n in names if n in by_name]) for title, why, names in JOBS]
+    groups[-1][2].extend(by_name.values())
+    top_c = max(s["customer_share"] for s in segs)
+    top_r = max(s["revenue_gbp"] for s in segs) / total_rev
+    out = []
+    for i, (title, why, members) in enumerate(groups):
+        if not members:
+            continue
+        rows = []
+        for s in members:
+            rev = s["revenue_gbp"] / total_rev
+            rows.append(
+                f'<div class="seg"><h4>{escape(s["segment"])}</h4><p class="flow">{escape(s["automation_flow"])}</p>'
+                f'<div class="pair"><span>Customers</span>'
+                f'{_meter(s["customer_share"] / top_c * 0.62, f"""{s["customers"]:,}<em>{s["customer_share"]:.0%}</em>""", soft=True)}'
+                f'<span>Revenue</span>'
+                f'{_meter(rev / top_r * 0.62, f"""{_money(s["revenue_gbp"])}<em>{rev:.0%}</em>""")}</div></div>'
+            )
+        cls = "job lead-job" if i == 0 else "job"
+        out.append(f'<article class="{cls}"><h3>{title}</h3><p>{why}</p>{"".join(rows)}</article>')
+    return f'<div class="jobs">{"".join(out)}</div>'
 
 
-def clv_table(ranked: list[dict]) -> str:
-    vmax = max(c["historical_clv_gbp"] for c in ranked)
-    rows = "".join(
-        f'<tr><th scope="row">{escape(c["country"])}</th>'
-        f'<td><div class="cell">{_bar(c["historical_clv_gbp"] / vmax)}'
-        f'<span class="num">£{c["historical_clv_gbp"]:,.0f}</span></div></td>'
-        f'<td class="n">{c["customers"]:,}</td><td class="n">{c["orders_per_customer"]:.1f}</td>'
-        f'<td class="n">£{c["avg_order_value_gbp"]:,.0f}</td></tr>'
-        for c in ranked)
-    return ('<div class="scroll"><table><caption class="sr">Historical customer lifetime value by country</caption>'
-            '<thead><tr><th scope="col">Market</th><th scope="col">Revenue per customer</th>'
-            '<th scope="col" class="n">Customers</th><th scope="col" class="n">Orders each</th>'
-            f'<th scope="col" class="n">Avg order</th></tr></thead><tbody>{rows}</tbody></table></div>')
+def lifecycle(stages: list[dict]) -> str:
+    """One part-to-whole bar of customers by stage, with the rule and action under it."""
+    mix = [STAGE_MIX[min(i, len(STAGE_MIX) - 1)] for i in range(len(stages))]
+    colour = [f"color-mix(in srgb, var(--accent) {m}%, var(--rest))" for m in mix]
+    bar = "".join(
+        f'<i style="width:{s["share"] * 100:.1f}%;background:{c}" title="{escape(s["stage"])}: {s["customers"]:,} customers ({s["share"]:.0%})"></i>'
+        for s, c in zip(stages, colour))
+    cols = "".join(
+        f'<div class="stage"><h3><i style="background:{c}"></i>{escape(s["stage"])}</h3>'
+        f'<b class="num">{s["customers"]:,}</b>'
+        f'<p>{s["share"]:.0%} of customers, {_money(s["revenue_gbp"])} spent so far</p>'
+        f'<p>{escape(s["rule"]).capitalize()}</p>'
+        f'<p class="do">{escape(s["recommended_action"])}</p></div>'
+        for s, c in zip(stages, colour))
+    return f'<div class="stack" role="img" aria-label="Customers by lifecycle stage">{bar}</div><div class="stages">{cols}</div>'
+
+
+def average_curve(co: dict) -> list[float]:
+    """Customer-weighted repeat rate for months 1..k. The first cohort is left
+    out: it also holds customers acquired before the data starts."""
+    out = []
+    for k in range(1, co["max_offset"] + 1):
+        seen = [(c["retention"][k], c["customers"]) for c in co["cohorts"][1:] if c["retention"][k] is not None]
+        out.append(sum(r * n for r, n in seen) / sum(n for _, n in seen))
+    return out
+
+
+def curve(avg: list[float]) -> str:
+    top = max(avg)
+    return '<div class="curve" role="img" aria-label="Average share of new customers who order again, by month">' + "".join(
+        f'<div><b class="num">{x:.0%}</b><i style="height:{x / top * 110:.0f}px"></i><span>Month {k}</span></div>'
+        for k, x in enumerate(avg, start=1)) + "</div>"
 
 
 def heatmap(co: dict) -> str:
-    """Cohort x month offset. M0 (100% by construction) is left out; months
+    """Cohort x month offset. Month 0 (100% by construction) is left out; months
     the data does not fully cover are hatched, not shown as 0%."""
     cohorts, k_max = co["cohorts"], co["max_offset"]
     seen = [x for c in cohorts for x in c["retention"][1:] if x is not None]
@@ -193,37 +305,56 @@ def heatmap(co: dict) -> str:
         cells = []
         for k, x in enumerate(c["retention"][1:], start=1):
             if x is None:
-                cells.append(f'<td class="na" title="{name} cohort, month {k}: not fully observed yet">–</td>')
+                cells.append(f'<td class="na" title="{name} cohort, month {k}: not fully observed yet"></td>')
                 continue
-            step = round((x - lo) / (hi - lo) * (len(RAMP) - 1)) if hi > lo else 0
-            dark = " dk" if step >= DARK_FROM else ""
-            cells.append(f'<td class="c{dark}" style="background:{RAMP[step]}" '
+            step = round((x - lo) / (hi - lo) * (len(HEAT) - 1)) if hi > lo else 0
+            hi_cls = " hi" if step >= FLIP else ""
+            cells.append(f'<td class="c{hi_cls}" style="--p:{HEAT[step]}" '
                          f'title="{name} cohort, month {k}: {x:.1%} ordered again">{x:.0%}</td>')
         body.append(f'<tr><th scope="row">{name}</th><td class="n">{c["customers"]:,}</td>{"".join(cells)}</tr>')
-    scale = (f'<div class="scale"><span>{lo:.0%}</span>'
-             f'<span class="ramp" style="background:linear-gradient(90deg,{",".join(RAMP)})"></span>'
+    scale = (f'<div class="scale"><span>{lo:.0%}</span><span class="ramp"></span>'
              f'<span>{hi:.0%} ordered again</span><span><i class="na"></i> month not fully observed yet</span></div>')
     return (f'<div class="scroll"><table class="heat"><caption class="sr">Repeat-purchase rate by signup cohort and month'
-            f'</caption><thead><tr><th scope="col">Cohort</th><th scope="col" class="n">Customers</th>{head}</tr></thead>'
+            f'</caption><thead><tr><th scope="col">First order in</th><th scope="col" class="n">Customers</th>{head}</tr></thead>'
             f'<tbody>{"".join(body)}</tbody></table></div>{scale}')
+
+
+def markets(ranked: list[dict]) -> str:
+    vmax = max(c["historical_clv_gbp"] for c in ranked)
+    rows = "".join(
+        f'<tr><th scope="row">{escape(c["country"])}</th>'
+        f'<td>{_meter(c["historical_clv_gbp"] / vmax * 0.78, f"""£{c["historical_clv_gbp"]:,.0f}""")}</td>'
+        f'<td class="n">{c["customers"]:,}</td><td class="n">{c["orders_per_customer"]:.1f}</td>'
+        f'<td class="n">£{c["avg_order_value_gbp"]:,.0f}</td></tr>'
+        for c in ranked)
+    return ('<div class="scroll"><table class="markets"><caption class="sr">Revenue per customer by market</caption>'
+            '<thead><tr><th scope="col">Market</th><th scope="col">Revenue per customer</th>'
+            '<th scope="col" class="n">Customers</th><th scope="col" class="n">Orders each</th>'
+            f'<th scope="col" class="n">Average order</th></tr></thead><tbody>{rows}</tbody></table></div>')
 
 
 def build() -> str:
     crm = _load("analysis/crm_retention_metrics.json")
+    life = _load("analysis/crm_lifecycle_metrics.json")
 
     segs = crm["rfm"]["segments"]
     total_rev = sum(s["revenue_gbp"] for s in segs)
     top = max(segs, key=lambda s: s["revenue_gbp"])
     top_rev = top["revenue_gbp"] / total_rev
+    customers = crm["rfm"]["total_customers"]
     clv = crm["clv_by_country"]
     best = clv["ranked"][0]
     uk = next((c for c in clv["ranked"] if c["country"] == "United Kingdom"), clv["ranked"][-1])
     premium = best["historical_clv_gbp"] / uk["historical_clv_gbp"] - 1
     co = crm["cohort_retention"]
+    avg = average_curve(co)
     first = _month(co["cohorts"][0]["cohort_month"])
     last_day = date.fromisoformat(crm["reference_date"]) - timedelta(days=1)
-    span = f"{first} – {MONTHS[last_day.month - 1]} {last_day.year}"
+    span = f"{first} to {MONTHS[last_day.month - 1]} {last_day.year}"
     pooled = clv["small_n_pooled"]
+    stages = life["stages"]
+    risk = next((s for s in stages if s["stage"] == "At risk"), stages[0])
+    churned = next((s for s in stages if s["stage"] == "Churned"), stages[-1])
 
     return f"""<!doctype html>
 <html lang="en">
@@ -231,10 +362,10 @@ def build() -> str:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>CRM retention dashboard</title>
-<meta name="description" content="RFM segments, cohort retention and customer lifetime value on {crm["rfm"]["total_customers"]:,} customers from a public dataset (UCI Online Retail II).">
-<meta property="og:title" content="CRM retention dashboard">
-<meta property="og:description" content="{top["customer_share"]:.0%} of customers bring {top_rev:.0%} of revenue: RFM segments, cohort retention and customer value on a public e-commerce dataset.">
+<title>CRM retention practice: RFM, lifecycle and repeat purchases</title>
+<meta name="description" content="RFM segments, lifecycle stages and repeat purchases for {customers:,} customers of a UK online shop, on a public dataset (UCI Online Retail II).">
+<meta property="og:title" content="CRM retention practice">
+<meta property="og:description" content="{top["customer_share"]:.0%} of customers bring {top_rev:.0%} of revenue. RFM segments, lifecycle stages and repeat purchases on a public e-commerce dataset.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="{PAGE}">
 <meta property="og:image" content="{PAGE}preview.png">
@@ -243,69 +374,82 @@ def build() -> str:
 </head>
 <body>
 <header class="top"><div class="wrap">
-<b>CRM retention dashboard</b>
-<nav aria-label="Sections"><a href="#customers">Customers</a><a href="#retention">Retention</a><a href="#markets">Markets</a></nav>
-<a class="src" href="{REPO}">Source ↗</a>
+<b>CRM retention practice</b>
+<nav aria-label="Sections"><a href="#segments">Segments</a><a href="#lifecycle">Lifecycle</a><a href="#retention">Retention</a><a href="#markets">Markets</a><a href="#next">Next steps</a></nav>
+<a class="src" href="{REPO}">Source on GitHub</a>
 </div></header>
 <main class="wrap">
+
 <div class="hero">
-<h1>Which customers bring the revenue, and which CRM action does each group need?</h1>
-<p class="lead">RFM segmentation, cohort retention and customer value for a UK online retailer. This is an analysis
-exercise on a public dataset, not client work.</p>
-<div class="chips"><span class="chip"><span class="tag real">Public data</span> UCI Online Retail II · {crm["orders"]:,} orders · {span} · GBP</span>
-<span class="chip">Cross-checked with pandas and DuckDB</span></div>
+<div>
+<p class="eyebrow">Practice project on public data</p>
+<h1>{top["customer_share"]:.0%} of customers bring {top_rev:.0%} of revenue.</h1>
+<p class="lead">RFM segments, lifecycle stages and repeat purchases for {customers:,} customers of a UK online shop. One CRM action per group.</p>
+<a class="cta" href="#segments">See the segments</a>
+</div>
+<figure class="split">
+<figcaption>{escape(top["segment"])} compared with everyone else</figcaption>
+<div class="row"><span>Share of customers</span><b class="num">{top["customer_share"]:.0%}</b><div class="whole"><i style="width:{top["customer_share"] * 100:.1f}%"></i></div></div>
+<div class="row"><span>Share of revenue</span><b class="num">{top_rev:.0%}</b><div class="whole"><i style="width:{top_rev * 100:.1f}%"></i></div></div>
+<p class="key"><span><i style="background:var(--accent)"></i>{escape(top["segment"])}</span><span><i style="background:var(--rest)"></i>Everyone else</span></p>
+</figure>
 </div>
 
-<section class="kpis" aria-label="Headline figures">
-<div class="kpi"><span>Customers analysed</span><b>{crm["rfm"]["total_customers"]:,}</b><small>{crm["orders"]:,} orders over two years</small></div>
-<div class="kpi"><span>Revenue</span><b>{_money(total_rev, "£")}</b><small>identified customers, excl. returns and cancellations</small></div>
-<div class="kpi"><span>Revenue from {escape(top["segment"])}</span><b>{top_rev:.0%}</b><small>from {top["customer_share"]:.0%} of customers</small></div>
-<div class="kpi"><span>Revenue per customer, {escape(best["country"])}</span><b>£{best["historical_clv_gbp"]:,.0f}</b><small>{_signed(premium * 100, ".0f")}% vs {escape(uk["country"])} (£{uk["historical_clv_gbp"]:,.0f})</small></div>
+<dl class="figures">
+<div><dt>Customers</dt><dd class="num">{customers:,}</dd><small>{span}</small></div>
+<div><dt>Orders</dt><dd class="num">{crm["orders"]:,}</dd><small>returns and cancellations removed</small></div>
+<div><dt>Revenue</dt><dd class="num">{_money(total_rev)}</dd><small>in pounds, the currency of the data</small></div>
+<div><dt>At risk right now</dt><dd class="num">{risk["customers"]:,}</dd><small>customers, {_money(risk["revenue_gbp"])} spent so far</small></div>
+</dl>
+
+<section class="block" id="segments">
+<h2>Who gets which message</h2>
+<p class="desc">RFM scores every customer on how recently, how often and how much they buy. Each segment then gets one flow, so nobody receives a discount they did not need.</p>
+{jobs_grid(segs, total_rev)}
 </section>
 
-<section class="card takeaways" aria-label="Takeaways">
-<h2>What the numbers say</h2>
-<ol>
-<li>Protect <b>{escape(top["segment"])}</b> before buying reach: {top["customer_share"]:.0%} of customers, {top_rev:.0%} of revenue ({escape(top["automation_flow"])}).</li>
-<li>Judge acquisition cost by market: a customer in {escape(best["country"])} is worth <b>{premium:.0%} more</b> over their lifetime than one in {escape(uk["country"])}.</li>
-</ol>
-</section>
-
-<section class="block" id="customers">
-<h2>Customers</h2>
-<p class="desc">Recency, frequency and monetary quintiles put every customer into one segment, and each segment into one automation flow.</p>
-<div class="card">
-<h3>RFM segments: who they are and what they bring</h3>
-<p class="note">Bars show each segment's share of all customers and of all revenue.</p>
-{rfm_table(segs, total_rev)}
-<p class="take">{escape(top["segment"])} are {top["customer_share"]:.0%} of customers and {top_rev:.0%} of revenue. Next by revenue: {escape(segs[1]["segment"])} ({escape(segs[1]["automation_flow"])}) and {escape(segs[2]["segment"])} ({escape(segs[2]["automation_flow"])}).</p>
-</div>
+<section class="block" id="lifecycle">
+<h2>Where each customer is today</h2>
+<p class="desc">Five stages based on the date of the last order. These are the same rules my Klaviyo win-back flow uses as its trigger.</p>
+{lifecycle(stages)}
+<p class="callout"><b>{risk["customers"]:,} customers are at risk.</b> Their last order was 91 to 180 days ago and they have spent {_money(risk["revenue_gbp"])} so far. That is the win-back list.</p>
 </section>
 
 <section class="block" id="retention">
-<h2>Retention</h2>
-<p class="desc">Share of each signup-month cohort that ordered again k months later.</p>
-<div class="card">
-<h3>Repeat purchase by cohort</h3>
-<p class="note">The data ends on {last_day.day} {MONTHS[last_day.month - 1]} {last_day.year}, so months after {_month(co["last_complete_month"])} are hatched (not observed yet) instead of shown as 0%. The {first} cohort also contains customers acquired before the data starts, which is why it retains best.</p>
+<h2>Do customers come back?</h2>
+<p class="desc">Average share of new customers who order again in each of the six months after their first purchase.</p>
+{curve(avg)}
+<p class="aside">About one new customer in {round(1 / avg[0])} orders again the following month. The average leaves out the {first} group, which also contains customers acquired before the data starts.</p>
+<details>
+<summary>Show all {len(co["cohorts"])} monthly groups</summary>
 {heatmap(co)}
-</div>
+</details>
 </section>
 
 <section class="block" id="markets">
-<h2>Markets</h2>
-<p class="desc">Historical revenue per customer for markets with at least {clv["min_customers"]} customers; {pooled["countries"]} smaller markets ({pooled["customers"]:,} customers) are pooled, not ranked.</p>
-<div class="card">
-<h3>Lifetime value by market</h3>
-<p class="note">Revenue per customer = orders per customer × average order value.</p>
-{clv_table(clv["ranked"])}
-<p class="take">A customer in {escape(best["country"])} is worth {premium:.0%} more than one in {escape(uk["country"])}: a higher acquisition cost can still pay back there.</p>
+<h2>What a customer is worth, by market</h2>
+<p class="desc">Revenue per customer so far, for markets with at least {clv["min_customers"]} customers. A customer in {escape(best["country"])} has spent {premium:.0%} more than one in the {escape(uk["country"])}.</p>
+{markets(clv["ranked"])}
+<p class="aside">{pooled["countries"]} smaller markets ({pooled["customers"]:,} customers in total) are too small to rank on their own.</p>
+</section>
+
+<section class="block" id="next">
+<h2>What I would do with this in a real shop</h2>
+<p class="desc">These are recommendations, not results. The dataset has no email or advertising data, so nothing here has been tested on customers.</p>
+<div class="next">
+<article><h3>Keep discounts for the customers who need a reason to return</h3>
+<p>Send the offer to the win-back group only. The best customers get early access or a thank-you instead, and long-inactive, low-value customers get one cheap reminder before they leave the mailing list.</p></article>
+<article><h3>Start the win-back at day 91, not after a year</h3>
+<p>Customers who stopped buying three to six months ago are a short list with a recent purchase history. The group silent for more than a year is {churned["customers"] / risk["customers"]:.1f} times larger, and the longer the silence, the harder the return.</p></article>
+<article><h3>Judge the cost of a new customer by market</h3>
+<p>If a customer in {escape(best["country"])} spends {premium:.0%} more over time, paying more to acquire one there can still make sense. One blended target for every country hides that.</p></article>
 </div>
 </section>
+
 </main>
 <footer><div class="wrap">
-<p>Generated by <code>src/build_web_dashboard.py</code> from the committed analysis outputs; every headline figure is recomputed with pandas and DuckDB in <a href="{REPO}/blob/main/notebooks/cross_check.ipynb">the cross-check notebook</a>.</p>
-<p>Data: Chen, D. (2019) <i>Online Retail II</i>, UCI Machine Learning Repository, CC BY 4.0 — <a href="{REPO}/blob/main/data/REAL_DATA_PROVENANCE.md">provenance and cleaning rules</a>. Relationships are observational, not causal.</p>
+<p>Data: Chen, D. (2019), <i>Online Retail II</i>, UCI Machine Learning Repository, CC BY 4.0. <a href="{REPO}/blob/main/data/REAL_DATA_PROVENANCE.md">Source and cleaning rules</a>.</p>
+<p>All figures describe past orders in a public dataset. They are not forecasts and not client work. <a href="{REPO}#readme">How this was built</a>.</p>
 </div></footer>
 </body>
 </html>
