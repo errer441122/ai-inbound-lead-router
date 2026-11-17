@@ -5,7 +5,7 @@ from the UCI *Online Retail II* dataset (CC BY 4.0) — real UK online-retail
 transactions, Dec 2009 - Dec 2011, prices in GBP. See
 `data/REAL_DATA_PROVENANCE.md`.
 
-Four standard lifecycle artefacts a CRM / e-commerce / customer-insights
+Five standard lifecycle artefacts a CRM / e-commerce / customer-insights
 team ships:
 
 1. **RFM segmentation** — quintile Recency/Frequency/Monetary scores mapped
@@ -14,6 +14,8 @@ team ships:
 3. **Historical CLV by country** — revenue per acquired customer (Online
    Retail II has no media/channel field, so the breakdown is by country).
 4. **Lifecycle → automation map** — the flow each RFM segment should enter.
+5. **Time to second order** — how many days new customers take to come
+   back, which sets when a second-order email should go out.
 
 The reference date for recency is the dataset's last order date + 1 day
 (standard RFM convention), not a hard-coded constant. Pure standard library.
@@ -23,6 +25,7 @@ from __future__ import annotations
 
 import csv
 import json
+import statistics
 from collections import defaultdict
 from datetime import date, timedelta
 from pathlib import Path
@@ -37,6 +40,9 @@ METRICS_PATH = ANALYSIS_DIR / "crm_retention_metrics.json"
 # CLV estimate would be too noisy); they are pooled and reported separately.
 MIN_CUSTOMERS_FOR_CLV = 30
 COHORT_MAX_OFFSET = 6
+# Checkpoints for "how many new customers have ordered again by day N". The
+# last one is also the window: only customers with a full year to come back.
+SECOND_ORDER_DAYS = (30, 60, 90, 180, 365)
 
 
 def _d(s: str) -> date:
@@ -200,6 +206,38 @@ def cohort_retention(orders: list[dict[str, object]]) -> dict[str, object]:
     return {"max_offset": COHORT_MAX_OFFSET, "last_complete_month": last_full, "cohorts": table}
 
 
+def time_to_second_order(orders: list[dict[str, object]], as_of: date) -> dict[str, object]:
+    """How many days new customers take to place a second order.
+
+    The second order is the first one on a later day: a second invoice on
+    the same day is the same visit. Only customers who had a full year to
+    come back are counted (first order at least 365 days before the data
+    ends), and the first month is left out because it also holds customers
+    acquired before the data starts.
+    """
+    window = SECOND_ORDER_DAYS[-1]
+    days: dict[str, set[date]] = defaultdict(set)
+    for o in orders:
+        days[o["customer_id"]].add(o["order_date"])
+    first_month = min(o["order_date"] for o in orders).strftime("%Y-%m")
+    gaps: list[int | None] = []
+    for d in days.values():
+        first, *later = sorted(d)
+        if first.strftime("%Y-%m") == first_month or (as_of - first).days < window:
+            continue
+        gaps.append((later[0] - first).days if later else None)
+    back = [g for g in gaps if g is not None and g <= window]
+    return {
+        "customers": len(gaps),
+        "window_days": window,
+        "first_month_left_out": first_month,
+        "share_back_by_day": {
+            str(k): round(sum(1 for g in back if g <= k) / len(gaps), 4) for k in SECOND_ORDER_DAYS
+        },
+        "median_days_if_back": statistics.median(back),
+    }
+
+
 def clv_by_country(rfm_result: dict[str, object]) -> dict[str, object]:
     by_customer = rfm_result["_by_customer"]
     agg: dict[str, dict[str, float]] = defaultdict(
@@ -238,6 +276,7 @@ def run() -> dict[str, object]:
     rfm_result = rfm(orders, as_of)
     clv = clv_by_country(rfm_result)
     cohorts = cohort_retention(orders)
+    second = time_to_second_order(orders, as_of)
     rfm_public = {k: v for k, v in rfm_result.items() if k != "_by_customer"}
     return {
         "dataset": "Online Retail II (UCI, CC BY 4.0) — real",
@@ -245,6 +284,7 @@ def run() -> dict[str, object]:
         "reference_date": as_of.isoformat(),
         "rfm": rfm_public,
         "cohort_retention": cohorts,
+        "time_to_second_order": second,
         "clv_by_country": clv,
     }
 
@@ -283,6 +323,27 @@ def _md(r: dict[str, object]) -> str:
         "offset. — marks a month the data does not fully cover yet (the last "
         f"complete month is {r['cohort_retention']['last_complete_month']}): "
         "late cohorts are right-censored, not churned.\n"
+    )
+
+    t2 = r["time_to_second_order"]
+    L.append("## Time to second order\n")
+    L.append(
+        f"{t2['customers']:,} customers whose first order came at least "
+        f"{t2['window_days']} days before the data ends, so each had a full year "
+        f"to come back ({t2['first_month_left_out']} is left out: it also holds "
+        f"customers acquired before the data starts). A second order is the first "
+        f"one on a later day; a second invoice on the same day is the same visit.\n"
+    )
+    days = sorted(t2["share_back_by_day"], key=int)
+    L.append("| | " + " | ".join(f"By day {d}" for d in days) + " |")
+    L.append("| --- | " + " | ".join(["---:"] * len(days)) + " |")
+    L.append("| Share that ordered again | " + " | ".join(
+        f"{t2['share_back_by_day'][d]:.0%}" for d in days) + " |")
+    L.append("")
+    L.append(
+        f"Of the customers who came back within a year, half did so within "
+        f"**{t2['median_days_if_back']:.0f} days**. A second-order email belongs "
+        f"before that point.\n"
     )
 
     clv = r["clv_by_country"]

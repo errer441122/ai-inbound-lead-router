@@ -46,6 +46,16 @@
 
 M0 is the acquisition month (100% by construction); later columns are the share of the cohort that placed another order in that month offset. — marks a month the data does not fully cover yet (the last complete month is 2011-11): late cohorts are right-censored, not churned.
 
+## Time to second order
+
+3,359 customers whose first order came at least 365 days before the data ends, so each had a full year to come back (2009-12 is left out: it also holds customers acquired before the data starts). A second order is the first one on a later day; a second invoice on the same day is the same visit.
+
+| | By day 30 | By day 60 | By day 90 | By day 180 | By day 365 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Share that ordered again | 16% | 31% | 41% | 57% | 69% |
+
+Of the customers who came back within a year, half did so within **71 days**. A second-order email belongs before that point.
+
 ## Historical CLV by country
 
 Online Retail II has no media/channel field, so lifetime value is broken down by **country**. Only countries with ≥ 30 customers are ranked (smaller ones are too noisy to compare).

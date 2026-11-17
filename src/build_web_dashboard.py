@@ -144,6 +144,14 @@ h2 { font-family: "Segoe UI Variable Display", "Segoe UI", -apple-system, BlinkM
 .curve b { font-size: 24px; letter-spacing: -0.02em; font-weight: 650; }
 .curve i { display: block; background: var(--accent); border-radius: 6px 6px 0 0; margin-top: 6px; }
 .curve span { font-size: 13.5px; color: var(--ink-2); border-top: 1px solid var(--line); padding-top: 8px; }
+.second { margin-top: 48px; }
+.second h3 { margin: 0 0 6px; font-size: 20px; letter-spacing: -0.015em; }
+.second .note { margin: 0 0 20px; color: var(--ink-2); font-size: 15px; max-width: 62ch; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 20px; max-width: 900px; }
+.steps span { display: block; font-size: 13.5px; color: var(--ink-2); }
+.steps b { display: block; font-size: 28px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 650; margin: 2px 0 8px; }
+.steps i { display: block; height: 8px; border-radius: 4px; background: var(--accent); min-width: 4px; }
 details { margin-top: 30px; }
 summary { cursor: pointer; font-weight: 600; font-size: 15px; color: var(--accent); width: fit-content; }
 .scroll { overflow-x: auto; margin-top: 16px; }
@@ -203,6 +211,7 @@ footer p { margin: 0 0 8px; max-width: 86ch; }
   .job { padding: 20px 18px 8px; }
   .stages { grid-template-columns: 1fr; gap: 18px; }
   .curve { gap: 8px; } .curve b { font-size: 18px; } .curve div { height: 150px; }
+  .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } .steps b { font-size: 22px; }
   .callout { padding: 18px 18px; font-size: 16px; }
 }
 @media print { .top { position: static; } }
@@ -292,6 +301,19 @@ def curve(avg: list[float]) -> str:
         for k, x in enumerate(avg, start=1)) + "</div>"
 
 
+def second_order(t2: dict) -> str:
+    """Share of new customers who have ordered again by each checkpoint day."""
+    items = "".join(
+        f'<li><span>By day {day}</span><b class="num">{share:.0%}</b><i style="width:{share * 100:.1f}%"></i></li>'
+        for day, share in sorted(t2["share_back_by_day"].items(), key=lambda kv: int(kv[0])))  # JSON keys sort as text
+    return (f'<div class="second" id="second-order"><h3>How long until the second order</h3>'
+            f'<p class="note">Share of new customers who have ordered again by each day after their first purchase.</p>'
+            f'<ol class="steps" aria-label="Share of new customers who ordered again, by day">{items}</ol>'
+            f'<p class="aside">Half of the customers who come back within a year do it within '
+            f'{t2["median_days_if_back"]:.0f} days. Counted on {t2["customers"]:,} customers who all had a full year '
+            f'to return; a second invoice on the same day does not count as a second order.</p></div>')
+
+
 def heatmap(co: dict) -> str:
     """Cohort x month offset. Month 0 (100% by construction) is left out; months
     the data does not fully cover are hatched, not shown as 0%."""
@@ -355,6 +377,8 @@ def build() -> str:
     stages = life["stages"]
     risk = next((s for s in stages if s["stage"] == "At risk"), stages[0])
     churned = next((s for s in stages if s["stage"] == "Churned"), stages[-1])
+    t2 = crm["time_to_second_order"]
+    median_back = f'{t2["median_days_if_back"]:.0f}'
 
     return f"""<!doctype html>
 <html lang="en">
@@ -420,6 +444,7 @@ def build() -> str:
 <p class="desc">Average share of new customers who order again in each of the six months after their first purchase.</p>
 {curve(avg)}
 <p class="aside">About one new customer in {round(1 / avg[0])} orders again the following month. The average leaves out the {first} group, which also contains customers acquired before the data starts.</p>
+{second_order(t2)}
 <details>
 <summary>Show all {len(co["cohorts"])} monthly groups</summary>
 {heatmap(co)}
@@ -437,10 +462,12 @@ def build() -> str:
 <h2>What I would do with this in a real shop</h2>
 <p class="desc">These are recommendations, not results. The dataset has no email or advertising data, so nothing here has been tested on customers.</p>
 <div class="next">
-<article><h3>Keep discounts for the customers who need a reason to return</h3>
-<p>Send the offer to the win-back group only. The best customers get early access or a thank-you instead, and long-inactive, low-value customers get one cheap reminder before they leave the mailing list.</p></article>
+<article><h3>Send the second-order email before day {median_back}</h3>
+<p>Half of the new customers who come back within a year place their second order within {median_back} days, and by day 90, {t2["share_back_by_day"]["90"]:.0%} of new customers have already ordered again. A reminder without a discount fits before day {median_back}; the discount is better kept for the ones still missing after day 90.</p></article>
 <article><h3>Start the win-back at day 91, not after a year</h3>
 <p>Customers who stopped buying three to six months ago are a short list with a recent purchase history. The group silent for more than a year is {churned["customers"] / risk["customers"]:.1f} times larger, and the longer the silence, the harder the return.</p></article>
+<article><h3>Keep discounts for the customers who need a reason to return</h3>
+<p>Send the offer to the win-back group only. The best customers get early access or a thank-you instead, and long-inactive, low-value customers get one cheap reminder before they leave the mailing list.</p></article>
 <article><h3>Judge the cost of a new customer by market</h3>
 <p>If a customer in {escape(best["country"])} spends {premium:.0%} more over time, paying more to acquire one there can still make sense. One blended target for every country hides that.</p></article>
 </div>

@@ -56,6 +56,15 @@ def test_every_segment_and_stage_is_on_the_page() -> None:
         assert f">{s['stage']}</h3>" in HTML
 
 
+def test_time_to_second_order_is_on_the_page() -> None:
+    crm = json.loads((ROOT / "analysis/crm_retention_metrics.json").read_text(encoding="utf-8"))
+    t2 = crm["time_to_second_order"]
+    assert f'within {t2["median_days_if_back"]:.0f} days' in HTML
+    days = sorted(t2["share_back_by_day"], key=int)
+    where = [HTML.index(f"By day {day}<") for day in days]
+    assert where == sorted(where), "checkpoints must read in day order"
+
+
 def test_average_curve_is_a_weighted_mean_of_observed_months() -> None:
     co = {"max_offset": 2, "cohorts": [
         {"customers": 999, "retention": [1.0, 0.9, 0.9]},   # first cohort: left out

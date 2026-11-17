@@ -20,6 +20,9 @@ client work.
   they have spent £1.06M so far. That is the win-back list.
 - **About one new customer in five orders again the following month** (21%),
   and the share is still 18% six months later.
+- **Half of the customers who come back do it within 71 days.** 41% of new
+  customers order again within 90 days and 69% within a year. That is the
+  window for a second-order email.
 - **A customer in Germany has spent 48% more than one in the UK** (£3,986
   against £2,700 per customer).
 
@@ -33,6 +36,7 @@ Full tables: [RFM segments, repeat purchases and value by country](analysis/crm_
 | **RFM segmentation** | Score each customer on how recently, how often and how much they buy | Decide who gets which message |
 | **Lifecycle stages** | New, Repeat, At risk, Dormant, Churned, based on the date of the last order | Trigger the right flow at the right time |
 | **Cohort retention** | Of the customers who first bought in a given month, how many come back in the next months | See whether customers return, and how fast they stop |
+| **Time to second order** | How many days pass between a customer's first and second order | Decide when the second-order email goes out |
 | **Revenue per customer by country** | Total spend divided by the number of customers | Compare how much a customer is worth in each market |
 
 The lifecycle rules are the same ones my
@@ -51,13 +55,18 @@ nothing here has been tested on customers.
    instead: they would have bought anyway, so a discount only costs margin.
    Long-inactive, low-value customers get one cheap reminder and then leave
    the mailing list, which also protects deliverability.
-2. **Start the win-back at day 91, not after a year.** The at-risk group is a
+2. **Time the second-order email with the data.** Half of the customers who
+   come back within a year place their second order within 71 days, and 41% of
+   new customers have already ordered again by day 90. A reminder without a
+   discount belongs before day 71; the discount waits for the customers still
+   missing after day 90.
+3. **Start the win-back at day 91, not after a year.** The at-risk group is a
    short list with a recent purchase history. The group silent for more than a
    year is 2.7 times larger, and the longer the silence, the harder the return.
-3. **Set the acquisition budget by market.** If a customer in Germany spends
+4. **Set the acquisition budget by market.** If a customer in Germany spends
    48% more over time, paying more to acquire one there can still make sense.
    One blended target for every country hides that.
-4. **Measure it on real data.** The next step is to run this on a real store
+5. **Measure it on real data.** The next step is to run this on a real store
    export (Shopify orders, Klaviyo campaigns) and compare repeat purchases
    between customers who received a flow and customers who did not.
 

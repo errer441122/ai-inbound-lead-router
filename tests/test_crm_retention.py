@@ -78,6 +78,25 @@ def test_dec_2010_sheet_overlap_is_not_double_counted() -> None:
     assert sum(n % 2 == 0 for n in items) / len(items) < 0.9
 
 
+def test_time_to_second_order_counts_later_days_and_full_years_only() -> None:
+    from datetime import date
+
+    def o(cid: str, d: str) -> dict:
+        return {"customer_id": cid, "order_date": date.fromisoformat(d)}
+
+    orders = [
+        o("early", "2009-12-01"), o("early", "2009-12-20"),  # first month: left out
+        o("a", "2010-01-05"), o("a", "2010-01-05"), o("a", "2010-02-04"),  # same day ignored -> 30
+        o("b", "2010-01-10"),  # never came back
+        o("late", "2011-06-01"), o("late", "2011-06-02"),  # under a year of data: left out
+    ]
+    t2 = cr.time_to_second_order(orders, date(2011, 12, 10))
+    assert t2["customers"] == 2
+    assert t2["share_back_by_day"]["30"] == 0.5
+    assert t2["share_back_by_day"]["365"] == 0.5
+    assert t2["median_days_if_back"] == 30
+
+
 def test_clv_by_country_is_ranked_thresholded_and_consistent() -> None:
     clv = RESULT["clv_by_country"]
     ranked = clv["ranked"]

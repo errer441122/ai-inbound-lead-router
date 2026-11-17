@@ -431,5 +431,18 @@
       }
     ],
     "total_customers": 5878
+  },
+  "time_to_second_order": {
+    "customers": 3359,
+    "first_month_left_out": "2009-12",
+    "median_days_if_back": 71.0,
+    "share_back_by_day": {
+      "180": 0.5713,
+      "30": 0.1637,
+      "365": 0.6943,
+      "60": 0.3102,
+      "90": 0.4076
+    },
+    "window_days": 365
   }
 }
