@@ -54,6 +54,7 @@ h1 { font-family: "Segoe UI Variable Display", "Segoe UI", -apple-system, BlinkM
 .lead { font-size: 18px; color: var(--ink-2); max-width: 46ch; margin: 0 0 30px; }
 .cta { display: inline-block; background: var(--accent); color: var(--on-accent); text-decoration: none; font-weight: 600;
   font-size: 15.5px; padding: 12px 24px; border-radius: 999px; transition: transform .15s ease; }
+.cta.alt { background: transparent; color: var(--accent); border: 1px solid var(--accent); margin-left: 8px; }
 .cta:hover { transform: translateY(-1px); }
 .cta:active { transform: translateY(1px); }
 .cta:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
@@ -199,7 +200,7 @@ footer p { margin: 0 0 8px; max-width: 86ch; }
 <p class="eyebrow">Practice project on public data</p>
 <h1>26% of customers bring 71% of revenue.</h1>
 <p class="lead">RFM segments, lifecycle stages and repeat purchases for 5,878 customers of a UK online shop. One CRM action per group.</p>
-<a class="cta" href="#segments">See the segments</a>
+<a class="cta" href="#segments">See the segments</a><a class="cta alt" href="app.html">Run it on your data</a>
 </div>
 <figure class="split">
 <figcaption>Champions compared with everyone else</figcaption>

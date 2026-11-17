@@ -14,8 +14,11 @@ market) and writes three files into --out (default: report/):
                  does that before it writes to Klaviyo)
 - summary.json   every number on the page
 
-Values stay in the store's currency. Nothing leaves the machine. The files
-hold customer emails, so report/ is gitignored.
+Files saved again by Excel work too: comma, semicolon or tab separators,
+decimal commas, DD/MM/YYYY dates. The browser page (docs/app.html) runs this
+same code on a file the user picks. Values stay in the store's currency.
+Nothing leaves the machine. The files hold customer emails, so report/ is
+gitignored.
 
 Pure standard library.
 """
@@ -24,8 +27,9 @@ from __future__ import annotations
 
 import argparse
 import csv
+import io
 import json
-from datetime import date
+from datetime import date, datetime
 from html import escape
 from pathlib import Path
 
@@ -39,13 +43,50 @@ NOT_A_SALE = {"refunded", "voided"}  # Shopify "Financial Status" values
 CUSTOMER_COLUMNS = ("email", "customer_id", "customer")
 VALUE_COLUMNS = ("order_value", "value", "total", "order_value_eur", "order_value_gbp")
 SYMBOLS = {"EUR": "€", "GBP": "£", "USD": "$"}
+DATE_FORMATS = ("%Y-%m-%d", "%d/%m/%Y")
 FORMULA_START = ("=", "+", "-", "@", "\t", "\r")  # same rule as build_dashboard.py
 MIN_CUSTOMERS = 100  # below this, quintiles and repeat rates are too jumpy to act on
+CUSTOMER_HEADER = ["customer", "country", "orders", "spend", "last_order", "days_since_last_order",
+                   "rfm_segment", "segment_flow", "lifecycle_stage", "stage_action"]
+
+
+def read_csv(path: Path) -> csv.DictReader:
+    """Rows of a CSV as real tools save it: comma, semicolon (Italian Excel) or
+    tab as separator, with or without the byte-order mark Excel adds."""
+    text = path.read_text(encoding="utf-8-sig")
+    header = text.split("\n", 1)[0]
+    return csv.DictReader(io.StringIO(text, newline=""), delimiter=max(",;\t", key=header.count))
+
+
+def parse_day(text: str | None) -> date | None:
+    """Date from "2026-05-20", "2026-05-20 14:03:00 +0200" or "20/05/2026"; None if empty."""
+    text = (text or "").strip()
+    if not text:
+        return None
+    head = text.split()[0].split("T")[0]
+    for fmt in DATE_FORMATS:
+        try:
+            return datetime.strptime(head, fmt).date()
+        except ValueError:
+            pass
+    raise ValueError(f"date {text!r} is neither YYYY-MM-DD nor DD/MM/YYYY")
+
+
+def parse_amount(text: str | None) -> float:
+    """Number from "49.90", "49,90", "1.234,56" or "1,234.56" (currency signs ignored)."""
+    t = "".join(ch for ch in (text or "") if ch.isdigit() or ch in ",.-")
+    if not t:
+        return 0.0
+    if "," in t and "." in t:  # the separator that comes last is the decimal one
+        t = t.replace(".", "").replace(",", ".") if t.rfind(",") > t.rfind(".") else t.replace(",", "")
+    else:
+        t = t.replace(",", ".")
+    return float(t)
 
 
 def _shopify(reader):
-    """One (customer, order, day, value, country) per order; line items folded,
-    cancelled, refunded and voided orders left out."""
+    """One (customer, order, date text, value, country) per order; line items
+    folded, cancelled, refunded and voided orders left out."""
     orders: dict[str, dict] = {}
     for row in reader:
         order = orders.setdefault(row["Name"], {})
@@ -55,7 +96,7 @@ def _shopify(reader):
     for name, o in orders.items():
         if o.get("Cancelled at") or o.get("Financial Status", "").lower() in NOT_A_SALE:
             continue
-        yield (o.get("Email"), name, (o.get("Created at") or "")[:10], o.get("Total"),
+        yield (o.get("Email"), name, o.get("Created at"), o.get("Total"),
                o.get("Billing Country") or o.get("Shipping Country") or "Unknown")
 
 
@@ -74,23 +115,23 @@ def _simple(reader, columns: set[str]):
 
 def read_store_orders(path: Path) -> list[dict[str, object]]:
     """Orders in the shape crm_retention expects, from either file format."""
-    with path.open(newline="", encoding="utf-8-sig") as fh:  # -sig: Excel adds a BOM
-        reader = csv.DictReader(fh)
-        columns = set(reader.fieldnames or ())
-        rows = list(_shopify(reader) if SHOPIFY_COLUMNS <= columns else _simple(reader, columns))
+    reader = read_csv(path)
+    columns = set(reader.fieldnames or ())
+    rows = list(_shopify(reader) if SHOPIFY_COLUMNS <= columns else _simple(reader, columns))
 
     orders: list[dict[str, object]] = []
     for customer, order_id, day, value, country in rows:
         customer = (customer or "").strip().lower()
-        if not customer or not day:
-            continue
         try:
-            when = date.fromisoformat(day.strip())
-        except ValueError:
-            raise SystemExit(f"Order {order_id}: date {day!r} is not YYYY-MM-DD.") from None
+            when = parse_day(day)
+            amount = parse_amount(value)
+        except ValueError as e:
+            raise SystemExit(f"Order {order_id}: {e}.") from None
+        if not customer or when is None:
+            continue
         orders.append({"customer_id": customer, "order_id": order_id, "order_date": when,
                        # the key says gbp because the UCI data is in pounds; here it is the store's currency
-                       "order_value_gbp": float(value or 0), "country": country.strip()})
+                       "order_value_gbp": amount, "country": country.strip()})
 
     first: dict[str, date] = {}
     for o in orders:
@@ -121,6 +162,56 @@ def customer_rows(orders: list[dict[str, object]]) -> list[list[object]]:
     return rows
 
 
+def make_report(path: Path, store: str = "your store", currency: str = "EUR",
+                source_name: str | None = None) -> dict:
+    """Everything the report consists of, as text: what main() writes to disk and
+    what the browser page offers for download."""
+    orders = read_store_orders(path)
+    if not orders:
+        raise SystemExit("No orders with a customer and a date in this file.")
+    name = source_name or path.name
+    crm = cr.run(orders)
+    crm["dataset"] = name
+    life = crm_lifecycle.run(orders)
+    life["dataset"] = name
+
+    today = date.today().isoformat()
+    code = currency.upper()
+    customers = crm["rfm"]["total_customers"]
+    small = (f" Only {customers:,} customers: segments and repeat rates move a lot with each one, "
+             f"so read them as a first sketch.") if customers < MIN_CUSTOMERS else ""
+    meta = {
+        "title": f"{store}: retention report",
+        "name": store,
+        "eyebrow": f"Retention report, {today}",
+        "who": f"customers of {store}",
+        "symbol": SYMBOLS.get(code, code + " "),
+        "currency_note": f"in {code}",
+        "lifecycle_note": "The same rules the Klaviyo win-back in lifecycle-automation-lab uses as its trigger.",
+        "next_title": "What to do next",
+        "next_note": "Recommendations from this store's order history. Test each one against a group that does not receive it.",
+        "footer": (f"<p>Generated on {today} from {escape(name)}. "
+                   f"Figures describe past orders; they are not forecasts.{escape(small)}</p>"),
+        "public": False,
+        "app_link": "",
+    }
+    rows = customer_rows(orders)
+    buf = io.StringIO()
+    w = csv.writer(buf, lineterminator="\n")
+    w.writerow(CUSTOMER_HEADER)
+    w.writerows(rows)
+    return {
+        "html": page.build(crm, life, meta),
+        "customers_csv": buf.getvalue(),
+        "summary_json": json.dumps({"retention": crm, "lifecycle": life}, indent=2, sort_keys=True, default=str) + "\n",
+        "customers": customers,
+        "orders": len(orders),
+        "warning": small.strip(),
+        "header": CUSTOMER_HEADER,
+        "top_customers": rows[:25],
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--orders", type=Path, required=True, help="Shopify orders export, or a simple orders CSV")
@@ -129,49 +220,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", type=Path, default=Path("report"))
     args = p.parse_args(argv)
 
-    orders = read_store_orders(args.orders)
-    if not orders:
-        print("No orders with a customer and a date in this file.")
-        return 1
-    crm = cr.run(orders)
-    crm["dataset"] = args.orders.name
-    life = crm_lifecycle.run(orders)
-    life["dataset"] = args.orders.name
-
-    today = date.today().isoformat()
-    code = args.currency.upper()
-    customers = crm["rfm"]["total_customers"]
-    small = (f" Only {customers:,} customers: segments and repeat rates move a lot with each one, "
-             f"so read them as a first sketch.") if customers < MIN_CUSTOMERS else ""
-    if small:
-        print(small.strip())
-    meta = {
-        "title": f"{args.store}: retention report",
-        "name": args.store,
-        "eyebrow": f"Retention report, {today}",
-        "who": f"customers of {args.store}",
-        "symbol": SYMBOLS.get(code, code + " "),
-        "currency_note": f"in {code}",
-        "lifecycle_note": "The same rules the Klaviyo win-back in lifecycle-automation-lab uses as its trigger.",
-        "next_title": "What to do next",
-        "next_note": "Recommendations from this store's order history. Test each one against a group that does not receive it.",
-        "footer": (f"<p>Generated on {today} by store_report.py from {escape(args.orders.name)}. "
-                   f"Figures describe past orders; they are not forecasts.{escape(small)}</p>"),
-        "public": False,
-    }
-
+    report = make_report(args.orders, args.store, args.currency)
+    if report["warning"]:
+        print(report["warning"])
     args.out.mkdir(parents=True, exist_ok=True)
-    (args.out / "index.html").write_text(page.build(crm, life, meta), encoding="utf-8", newline="\n")
-    rows = customer_rows(orders)
-    with (args.out / "customers.csv").open("w", newline="", encoding="utf-8") as fh:
-        w = csv.writer(fh, lineterminator="\n")
-        w.writerow(["customer", "country", "orders", "spend", "last_order", "days_since_last_order",
-                    "rfm_segment", "segment_flow", "lifecycle_stage", "stage_action"])
-        w.writerows(rows)
-    (args.out / "summary.json").write_text(
-        json.dumps({"retention": crm, "lifecycle": life}, indent=2, sort_keys=True, default=str) + "\n",
-        encoding="utf-8", newline="\n")
-    print(f"{len(rows):,} customers, {len(orders):,} orders -> "
+    (args.out / "index.html").write_text(report["html"], encoding="utf-8", newline="\n")
+    (args.out / "customers.csv").write_text(report["customers_csv"], encoding="utf-8", newline="\n")
+    (args.out / "summary.json").write_text(report["summary_json"], encoding="utf-8", newline="\n")
+    print(f"{report['customers']:,} customers, {report['orders']:,} orders -> "
           f"{args.out / 'index.html'}, customers.csv, summary.json")
     return 0
 

@@ -89,6 +89,7 @@ h1 { font-family: "Segoe UI Variable Display", "Segoe UI", -apple-system, BlinkM
 .lead { font-size: 18px; color: var(--ink-2); max-width: 46ch; margin: 0 0 30px; }
 .cta { display: inline-block; background: var(--accent); color: var(--on-accent); text-decoration: none; font-weight: 600;
   font-size: 15.5px; padding: 12px 24px; border-radius: 999px; transition: transform .15s ease; }
+.cta.alt { background: transparent; color: var(--accent); border: 1px solid var(--accent); margin-left: 8px; }
 .cta:hover { transform: translateY(-1px); }
 .cta:active { transform: translateY(1px); }
 .cta:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
@@ -242,6 +243,7 @@ PUBLIC_PAGE = {
                f'<p>All figures describe past orders in a public dataset. They are not forecasts and not client work. '
                f'<a href="{REPO}#readme">How this was built</a>.</p>'),
     "public": True,
+    "app_link": "app.html",  # the same report on the visitor's own file
 }
 # Country names that read wrong without an article ("in the United Kingdom").
 NEEDS_THE = {"United Kingdom", "United States", "Netherlands", "Czech Republic", "United Arab Emirates",
@@ -505,7 +507,7 @@ def build(crm: dict | None = None, life: dict | None = None, meta: dict | None =
 <p class="eyebrow">{escape(m["eyebrow"])}</p>
 <h1>{top["customer_share"]:.0%} of customers bring {top_rev:.0%} of revenue.</h1>
 <p class="lead">RFM segments, lifecycle stages and repeat purchases for {customers:,} {escape(m["who"])}. One CRM action per group.</p>
-<a class="cta" href="#segments">See the segments</a>
+<a class="cta" href="#segments">See the segments</a>{f'<a class="cta alt" href="{m["app_link"]}">Run it on your data</a>' if m.get("app_link") else ""}
 </div>
 <figure class="split">
 <figcaption>{escape(top["segment"])} compared with everyone else</figcaption>

@@ -14,8 +14,15 @@ client work.
 
 ## Run it on your own store
 
-The page above is one example output. The same report runs on any store's
-orders export:
+The page above is one example output, on public data. **[Open the report
+builder](https://errer441122.github.io/digital-campaign-performance-dashboard/app.html)**,
+load your store's orders export and get the same report for your customers,
+plus the customer list, to download. The builder runs this repository's Python
+in the browser, so the file never leaves your computer and nothing needs
+installing. Its "try" buttons use a small handwritten Shopify file and the
+36,969 public orders, only to show what the output looks like.
+
+The same report runs from the command line:
 
 ```bash
 python src/store_report.py --orders orders_export.csv --store "Your shop" --currency EUR
@@ -24,7 +31,9 @@ python src/store_report.py --orders orders_export.csv --store "Your shop" --curr
 It takes the export straight from Shopify (*Orders > Export*: line items are
 folded into orders, cancelled, refunded and voided orders are left out) or a
 simple CSV with one row per order (`email` or `customer_id`, `order_date`,
-`order_value`, optional `country`). Into `report/` it writes:
+`order_value`, optional `country`). Files saved again by Excel work too:
+semicolons, decimal commas (`49,90`), dates as `20/05/2026`. Into `report/` it
+writes:
 
 | File | What it is for |
 | --- | --- |
