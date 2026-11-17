@@ -47,9 +47,9 @@ def stage_for(recency_days: int, orders: int) -> str:
     return "Churned"
 
 
-def lifecycle() -> dict[str, dict[str, object]]:
-    """Per-customer stage from purchase recency and frequency."""
-    orders = read_orders()
+def lifecycle(orders: list[dict[str, object]] | None = None) -> dict[str, dict[str, object]]:
+    """Per-customer stage from purchase recency and frequency (UCI file by default)."""
+    orders = orders if orders is not None else read_orders()
     as_of = reference_date(orders)
     agg: dict[str, dict[str, object]] = {}
     for o in orders:
@@ -71,8 +71,8 @@ def lifecycle() -> dict[str, dict[str, object]]:
     return out
 
 
-def run() -> dict[str, object]:
-    customers = lifecycle()
+def run(orders: list[dict[str, object]] | None = None) -> dict[str, object]:
+    customers = lifecycle(orders)
     total = len(customers)
     total_revenue = sum(c["monetary_gbp"] for c in customers.values())
 

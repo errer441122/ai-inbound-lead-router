@@ -227,14 +227,15 @@ def time_to_second_order(orders: list[dict[str, object]], as_of: date) -> dict[s
             continue
         gaps.append((later[0] - first).days if later else None)
     back = [g for g in gaps if g is not None and g <= window]
+    n = len(gaps)  # 0 for a store with less than a year of history
     return {
-        "customers": len(gaps),
+        "customers": n,
         "window_days": window,
         "first_month_left_out": first_month,
         "share_back_by_day": {
-            str(k): round(sum(1 for g in back if g <= k) / len(gaps), 4) for k in SECOND_ORDER_DAYS
+            str(k): round(sum(1 for g in back if g <= k) / n, 4) if n else 0.0 for k in SECOND_ORDER_DAYS
         },
-        "median_days_if_back": statistics.median(back),
+        "median_days_if_back": statistics.median(back) if back else None,
     }
 
 
@@ -270,8 +271,9 @@ def clv_by_country(rfm_result: dict[str, object]) -> dict[str, object]:
     return {"ranked": ranked, "small_n_pooled": pooled, "min_customers": MIN_CUSTOMERS_FOR_CLV}
 
 
-def run() -> dict[str, object]:
-    orders = read_orders()
+def run(orders: list[dict[str, object]] | None = None) -> dict[str, object]:
+    """Every metric, on the UCI file by default or on the orders given."""
+    orders = orders if orders is not None else read_orders()
     as_of = reference_date(orders)
     rfm_result = rfm(orders, as_of)
     clv = clv_by_country(rfm_result)

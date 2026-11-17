@@ -6,6 +6,10 @@ the JSON that `crm_retention.py` and `crm_lifecycle.py` write, so the page
 cannot drift from `analysis/`. CI regenerates it and fails if the committed
 copy differs.
 
+`store_report.py` builds the same page for any store's own orders; sections
+the data cannot fill (no market big enough, less than a year of history) are
+left out instead of showing empty charts.
+
 Run after crm_retention.py and crm_lifecycle.py. Pure standard library.
 """
 
@@ -222,12 +226,38 @@ def _load(rel: str) -> dict:
     return json.loads((ROOT / rel).read_text(encoding="utf-8"))
 
 
-def _money(v: float) -> str:
+# The public page; store_report.py passes its own values for the same keys.
+PUBLIC_PAGE = {
+    "title": "CRM retention practice: RFM, lifecycle and repeat purchases",
+    "name": "CRM retention practice",
+    "eyebrow": "Practice project on public data",
+    "who": "customers of a UK online shop",
+    "symbol": "£",
+    "currency_note": "in pounds, the currency of the data",
+    "lifecycle_note": "These are the same rules my Klaviyo win-back flow uses as its trigger.",
+    "next_title": "What I would do with this in a real shop",
+    "next_note": "These are recommendations, not results. The dataset has no email or advertising data, so nothing here has been tested on customers.",
+    "footer": (f'<p>Data: Chen, D. (2019), <i>Online Retail II</i>, UCI Machine Learning Repository, CC BY 4.0. '
+               f'<a href="{REPO}/blob/main/data/REAL_DATA_PROVENANCE.md">Source and cleaning rules</a>.</p>\n'
+               f'<p>All figures describe past orders in a public dataset. They are not forecasts and not client work. '
+               f'<a href="{REPO}#readme">How this was built</a>.</p>'),
+    "public": True,
+}
+# Country names that read wrong without an article ("in the United Kingdom").
+NEEDS_THE = {"United Kingdom", "United States", "Netherlands", "Czech Republic", "United Arab Emirates",
+             "Channel Islands", "Philippines"}
+
+
+def _place(country: str) -> str:
+    return f"the {country}" if country in NEEDS_THE else country
+
+
+def _money(v: float, sym: str = "£") -> str:
     if v >= 1e6:
-        return f"£{v / 1e6:.2f}M" if v < 1e7 else f"£{v / 1e6:.1f}M"
+        return f"{sym}{v / 1e6:.2f}M" if v < 1e7 else f"{sym}{v / 1e6:.1f}M"
     if v >= 1e4:
-        return f"£{v / 1e3:.0f}k"
-    return f"£{v:,.0f}"
+        return f"{sym}{v / 1e3:.0f}k"
+    return f"{sym}{v:,.0f}"
 
 
 def _month(ym: str) -> str:
@@ -241,7 +271,7 @@ def _meter(share: float, label: str, soft: bool = False) -> str:
     return f'<div class="meter"><i{cls} style="width:{max(share, 0.01) * 100:.1f}%"></i><span class="num">{label}</span></div>'
 
 
-def jobs_grid(segs: list[dict], total_rev: float) -> str:
+def jobs_grid(segs: list[dict], total_rev: float, sym: str = "£") -> str:
     """RFM segments grouped by CRM job; bars are scaled to the largest share."""
     by_name = {s["segment"]: s for s in segs}
     groups = [(title, why, [by_name.pop(n) for n in names if n in by_name]) for title, why, names in JOBS]
@@ -260,14 +290,14 @@ def jobs_grid(segs: list[dict], total_rev: float) -> str:
                 f'<div class="pair"><span>Customers</span>'
                 f'{_meter(s["customer_share"] / top_c * 0.62, f"""{s["customers"]:,}<em>{s["customer_share"]:.0%}</em>""", soft=True)}'
                 f'<span>Revenue</span>'
-                f'{_meter(rev / top_r * 0.62, f"""{_money(s["revenue_gbp"])}<em>{rev:.0%}</em>""")}</div></div>'
+                f'{_meter(rev / top_r * 0.62, f"""{_money(s["revenue_gbp"], sym)}<em>{rev:.0%}</em>""")}</div></div>'
             )
         cls = "job lead-job" if i == 0 else "job"
         out.append(f'<article class="{cls}"><h3>{title}</h3><p>{why}</p>{"".join(rows)}</article>')
     return f'<div class="jobs">{"".join(out)}</div>'
 
 
-def lifecycle(stages: list[dict]) -> str:
+def lifecycle(stages: list[dict], sym: str = "£") -> str:
     """One part-to-whole bar of customers by stage, with the rule and action under it."""
     mix = [STAGE_MIX[min(i, len(STAGE_MIX) - 1)] for i in range(len(stages))]
     colour = [f"color-mix(in srgb, var(--accent) {m}%, var(--rest))" for m in mix]
@@ -277,7 +307,7 @@ def lifecycle(stages: list[dict]) -> str:
     cols = "".join(
         f'<div class="stage"><h3><i style="background:{c}"></i>{escape(s["stage"])}</h3>'
         f'<b class="num">{s["customers"]:,}</b>'
-        f'<p>{s["share"]:.0%} of customers, {_money(s["revenue_gbp"])} spent so far</p>'
+        f'<p>{s["share"]:.0%} of customers, {_money(s["revenue_gbp"], sym)} spent so far</p>'
         f'<p>{escape(s["rule"]).capitalize()}</p>'
         f'<p class="do">{escape(s["recommended_action"])}</p></div>'
         for s, c in zip(stages, colour))
@@ -290,12 +320,14 @@ def average_curve(co: dict) -> list[float]:
     out = []
     for k in range(1, co["max_offset"] + 1):
         seen = [(c["retention"][k], c["customers"]) for c in co["cohorts"][1:] if c["retention"][k] is not None]
+        if not seen:  # a young store: later months are not observed yet
+            break
         out.append(sum(r * n for r, n in seen) / sum(n for _, n in seen))
     return out
 
 
 def curve(avg: list[float]) -> str:
-    top = max(avg)
+    top = max(avg) or 1  # a store where nobody has come back yet
     return '<div class="curve" role="img" aria-label="Average share of new customers who order again, by month">' + "".join(
         f'<div><b class="num">{x:.0%}</b><i style="height:{x / top * 110:.0f}px"></i><span>Month {k}</span></div>'
         for k, x in enumerate(avg, start=1)) + "</div>"
@@ -341,13 +373,13 @@ def heatmap(co: dict) -> str:
             f'<tbody>{"".join(body)}</tbody></table></div>{scale}')
 
 
-def markets(ranked: list[dict]) -> str:
+def markets(ranked: list[dict], sym: str = "£") -> str:
     vmax = max(c["historical_clv_gbp"] for c in ranked)
     rows = "".join(
         f'<tr><th scope="row">{escape(c["country"])}</th>'
-        f'<td>{_meter(c["historical_clv_gbp"] / vmax * 0.78, f"""£{c["historical_clv_gbp"]:,.0f}""")}</td>'
+        f'<td>{_meter(c["historical_clv_gbp"] / vmax * 0.78, f"""{sym}{c["historical_clv_gbp"]:,.0f}""")}</td>'
         f'<td class="n">{c["customers"]:,}</td><td class="n">{c["orders_per_customer"]:.1f}</td>'
-        f'<td class="n">£{c["avg_order_value_gbp"]:,.0f}</td></tr>'
+        f'<td class="n">{sym}{c["avg_order_value_gbp"]:,.0f}</td></tr>'
         for c in ranked)
     return ('<div class="scroll"><table class="markets"><caption class="sr">Revenue per customer by market</caption>'
             '<thead><tr><th scope="col">Market</th><th scope="col">Revenue per customer</th>'
@@ -355,9 +387,12 @@ def markets(ranked: list[dict]) -> str:
             f'<th scope="col" class="n">Average order</th></tr></thead><tbody>{rows}</tbody></table></div>')
 
 
-def build() -> str:
-    crm = _load("analysis/crm_retention_metrics.json")
-    life = _load("analysis/crm_lifecycle_metrics.json")
+def build(crm: dict | None = None, life: dict | None = None, meta: dict | None = None) -> str:
+    """The page for the UCI analysis by default, or for the data and texts given."""
+    crm = crm if crm is not None else _load("analysis/crm_retention_metrics.json")
+    life = life if life is not None else _load("analysis/crm_lifecycle_metrics.json")
+    m = {**PUBLIC_PAGE, **(meta or {})}
+    sym = m["symbol"]
 
     segs = crm["rfm"]["segments"]
     total_rev = sum(s["revenue_gbp"] for s in segs)
@@ -365,9 +400,12 @@ def build() -> str:
     top_rev = top["revenue_gbp"] / total_rev
     customers = crm["rfm"]["total_customers"]
     clv = crm["clv_by_country"]
-    best = clv["ranked"][0]
-    uk = next((c for c in clv["ranked"] if c["country"] == "United Kingdom"), clv["ranked"][-1])
-    premium = best["historical_clv_gbp"] / uk["historical_clv_gbp"] - 1
+    ranked = clv["ranked"]
+    best = ranked[0] if ranked else None
+    # The comparison market: the one with the most customers (the UK in the UCI data).
+    home = max(ranked, key=lambda c: c["customers"]) if ranked else None
+    compare = best is not None and home is not best
+    premium = best["historical_clv_gbp"] / home["historical_clv_gbp"] - 1 if compare else 0.0
     co = crm["cohort_retention"]
     avg = average_curve(co)
     first = _month(co["cohorts"][0]["cohort_month"])
@@ -375,10 +413,74 @@ def build() -> str:
     span = f"{first} to {MONTHS[last_day.month - 1]} {last_day.year}"
     pooled = clv["small_n_pooled"]
     stages = life["stages"]
-    risk = next((s for s in stages if s["stage"] == "At risk"), stages[0])
-    churned = next((s for s in stages if s["stage"] == "Churned"), stages[-1])
+    risk = next((s for s in stages if s["stage"] == "At risk"), None)
+    churned = next((s for s in stages if s["stage"] == "Churned"), None)
     t2 = crm["time_to_second_order"]
-    median_back = f'{t2["median_days_if_back"]:.0f}'
+    has_t2 = bool(t2["customers"]) and t2["median_days_if_back"] is not None
+    median_back = f'{t2["median_days_if_back"]:.0f}' if has_t2 else ""
+    has_heat = any(x is not None for c in co["cohorts"] for x in c["retention"][1:])
+
+    if m["public"]:
+        head_meta = f"""<meta name="description" content="RFM segments, lifecycle stages and repeat purchases for {customers:,} {m["who"]}, on a public dataset (UCI Online Retail II).">
+<meta property="og:title" content="CRM retention practice">
+<meta property="og:description" content="{top["customer_share"]:.0%} of customers bring {top_rev:.0%} of revenue. RFM segments, lifecycle stages and repeat purchases on a public e-commerce dataset.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{PAGE}">
+<meta property="og:image" content="{PAGE}preview.png">
+<meta name="twitter:card" content="summary_large_image">"""
+        source = f'<a class="src" href="{REPO}">Source on GitHub</a>'
+    else:
+        head_meta = '<meta name="robots" content="noindex">'
+        source = ""
+
+    nav = ('<a href="#segments">Segments</a><a href="#lifecycle">Lifecycle</a><a href="#retention">Retention</a>'
+           + ('<a href="#markets">Markets</a>' if ranked else "") + '<a href="#next">Next steps</a>')
+
+    if risk:
+        risk_tile = f'<dd class="num">{risk["customers"]:,}</dd><small>customers, {_money(risk["revenue_gbp"], sym)} spent so far</small>'
+        callout = (f'<p class="callout"><b>{risk["customers"]:,} customers are at risk.</b> Their last order was 91 to 180 days '
+                   f'ago and they have spent {_money(risk["revenue_gbp"], sym)} so far. That is the win-back list.</p>')
+    else:
+        risk_tile = '<dd class="num">0</dd><small>nobody last ordered 91 to 180 days ago</small>'
+        callout = '<p class="callout"><b>Nobody is in the win-back window right now.</b> No customer last ordered 91 to 180 days ago.</p>'
+
+    if avg:
+        month_one = (f'About one new customer in {round(1 / avg[0])} orders again the following month.' if avg[0]
+                     else 'No new customer has ordered again in the month after the first purchase yet.')
+        retention = (f'{curve(avg)}\n<p class="aside">{month_one} The average leaves out the {first} group, which also '
+                     f'contains customers acquired before the data starts.</p>')
+    else:
+        retention = '<p class="aside">Not enough history yet: the first month after the first purchase has not been observed for any group.</p>'
+    retention += f"\n{second_order(t2)}" if has_t2 else ""
+    if has_heat:
+        retention += f'\n<details>\n<summary>Show all {len(co["cohorts"])} monthly groups</summary>\n{heatmap(co)}\n</details>'
+
+    if ranked:
+        versus = (f' A customer in {escape(best["country"])} has spent {premium:.0%} more than one in {escape(_place(home["country"]))}.'
+                  if compare else "")
+        markets_section = f"""<section class="block" id="markets">
+<h2>What a customer is worth, by market</h2>
+<p class="desc">Revenue per customer so far, for markets with at least {clv["min_customers"]} customers.{versus}</p>
+{markets(ranked, sym)}
+<p class="aside">{pooled["countries"]} smaller markets ({pooled["customers"]:,} customers in total) are too small to rank on their own.</p>
+</section>
+
+"""
+    else:
+        markets_section = ""
+
+    steps = []
+    if has_t2:
+        steps.append(f"""<article><h3>Send the second-order email before day {median_back}</h3>
+<p>Half of the new customers who come back within a year place their second order within {median_back} days, and by day 90, {t2["share_back_by_day"]["90"]:.0%} of new customers have already ordered again. A reminder without a discount fits before day {median_back}; the discount is better kept for the ones still missing after day 90.</p></article>""")
+    if risk and churned:
+        steps.append(f"""<article><h3>Start the win-back at day 91, not after a year</h3>
+<p>Customers who stopped buying three to six months ago are a short list with a recent purchase history. The group silent for more than a year is {churned["customers"] / risk["customers"]:.1f} times larger, and the longer the silence, the harder the return.</p></article>""")
+    steps.append("""<article><h3>Keep discounts for the customers who need a reason to return</h3>
+<p>Send the offer to the win-back group only. The best customers get early access or a thank-you instead, and long-inactive, low-value customers get one cheap reminder before they leave the mailing list.</p></article>""")
+    if compare:
+        steps.append(f"""<article><h3>Judge the cost of a new customer by market</h3>
+<p>If a customer in {escape(best["country"])} spends {premium:.0%} more over time, paying more to acquire one there can still make sense. One blended target for every country hides that.</p></article>""")
 
     return f"""<!doctype html>
 <html lang="en">
@@ -386,29 +488,23 @@ def build() -> str:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>CRM retention practice: RFM, lifecycle and repeat purchases</title>
-<meta name="description" content="RFM segments, lifecycle stages and repeat purchases for {customers:,} customers of a UK online shop, on a public dataset (UCI Online Retail II).">
-<meta property="og:title" content="CRM retention practice">
-<meta property="og:description" content="{top["customer_share"]:.0%} of customers bring {top_rev:.0%} of revenue. RFM segments, lifecycle stages and repeat purchases on a public e-commerce dataset.">
-<meta property="og:type" content="website">
-<meta property="og:url" content="{PAGE}">
-<meta property="og:image" content="{PAGE}preview.png">
-<meta name="twitter:card" content="summary_large_image">
+<title>{escape(m["title"])}</title>
+{head_meta}
 <style>{CSS}</style>
 </head>
 <body>
 <header class="top"><div class="wrap">
-<b>CRM retention practice</b>
-<nav aria-label="Sections"><a href="#segments">Segments</a><a href="#lifecycle">Lifecycle</a><a href="#retention">Retention</a><a href="#markets">Markets</a><a href="#next">Next steps</a></nav>
-<a class="src" href="{REPO}">Source on GitHub</a>
+<b>{escape(m["name"])}</b>
+<nav aria-label="Sections">{nav}</nav>
+{source}
 </div></header>
 <main class="wrap">
 
 <div class="hero">
 <div>
-<p class="eyebrow">Practice project on public data</p>
+<p class="eyebrow">{escape(m["eyebrow"])}</p>
 <h1>{top["customer_share"]:.0%} of customers bring {top_rev:.0%} of revenue.</h1>
-<p class="lead">RFM segments, lifecycle stages and repeat purchases for {customers:,} customers of a UK online shop. One CRM action per group.</p>
+<p class="lead">RFM segments, lifecycle stages and repeat purchases for {customers:,} {escape(m["who"])}. One CRM action per group.</p>
 <a class="cta" href="#segments">See the segments</a>
 </div>
 <figure class="split">
@@ -422,61 +518,40 @@ def build() -> str:
 <dl class="figures">
 <div><dt>Customers</dt><dd class="num">{customers:,}</dd><small>{span}</small></div>
 <div><dt>Orders</dt><dd class="num">{crm["orders"]:,}</dd><small>returns and cancellations removed</small></div>
-<div><dt>Revenue</dt><dd class="num">{_money(total_rev)}</dd><small>in pounds, the currency of the data</small></div>
-<div><dt>At risk right now</dt><dd class="num">{risk["customers"]:,}</dd><small>customers, {_money(risk["revenue_gbp"])} spent so far</small></div>
+<div><dt>Revenue</dt><dd class="num">{_money(total_rev, sym)}</dd><small>{escape(m["currency_note"])}</small></div>
+<div><dt>At risk right now</dt>{risk_tile}</div>
 </dl>
 
 <section class="block" id="segments">
 <h2>Who gets which message</h2>
 <p class="desc">RFM scores every customer on how recently, how often and how much they buy. Each segment then gets one flow, so nobody receives a discount they did not need.</p>
-{jobs_grid(segs, total_rev)}
+{jobs_grid(segs, total_rev, sym)}
 </section>
 
 <section class="block" id="lifecycle">
 <h2>Where each customer is today</h2>
-<p class="desc">Five stages based on the date of the last order. These are the same rules my Klaviyo win-back flow uses as its trigger.</p>
-{lifecycle(stages)}
-<p class="callout"><b>{risk["customers"]:,} customers are at risk.</b> Their last order was 91 to 180 days ago and they have spent {_money(risk["revenue_gbp"])} so far. That is the win-back list.</p>
+<p class="desc">Five stages based on the date of the last order. {escape(m["lifecycle_note"])}</p>
+{lifecycle(stages, sym)}
+{callout}
 </section>
 
 <section class="block" id="retention">
 <h2>Do customers come back?</h2>
 <p class="desc">Average share of new customers who order again in each of the six months after their first purchase.</p>
-{curve(avg)}
-<p class="aside">About one new customer in {round(1 / avg[0])} orders again the following month. The average leaves out the {first} group, which also contains customers acquired before the data starts.</p>
-{second_order(t2)}
-<details>
-<summary>Show all {len(co["cohorts"])} monthly groups</summary>
-{heatmap(co)}
-</details>
+{retention}
 </section>
 
-<section class="block" id="markets">
-<h2>What a customer is worth, by market</h2>
-<p class="desc">Revenue per customer so far, for markets with at least {clv["min_customers"]} customers. A customer in {escape(best["country"])} has spent {premium:.0%} more than one in the {escape(uk["country"])}.</p>
-{markets(clv["ranked"])}
-<p class="aside">{pooled["countries"]} smaller markets ({pooled["customers"]:,} customers in total) are too small to rank on their own.</p>
-</section>
-
-<section class="block" id="next">
-<h2>What I would do with this in a real shop</h2>
-<p class="desc">These are recommendations, not results. The dataset has no email or advertising data, so nothing here has been tested on customers.</p>
+{markets_section}<section class="block" id="next">
+<h2>{escape(m["next_title"])}</h2>
+<p class="desc">{escape(m["next_note"])}</p>
 <div class="next">
-<article><h3>Send the second-order email before day {median_back}</h3>
-<p>Half of the new customers who come back within a year place their second order within {median_back} days, and by day 90, {t2["share_back_by_day"]["90"]:.0%} of new customers have already ordered again. A reminder without a discount fits before day {median_back}; the discount is better kept for the ones still missing after day 90.</p></article>
-<article><h3>Start the win-back at day 91, not after a year</h3>
-<p>Customers who stopped buying three to six months ago are a short list with a recent purchase history. The group silent for more than a year is {churned["customers"] / risk["customers"]:.1f} times larger, and the longer the silence, the harder the return.</p></article>
-<article><h3>Keep discounts for the customers who need a reason to return</h3>
-<p>Send the offer to the win-back group only. The best customers get early access or a thank-you instead, and long-inactive, low-value customers get one cheap reminder before they leave the mailing list.</p></article>
-<article><h3>Judge the cost of a new customer by market</h3>
-<p>If a customer in {escape(best["country"])} spends {premium:.0%} more over time, paying more to acquire one there can still make sense. One blended target for every country hides that.</p></article>
+{chr(10).join(steps)}
 </div>
 </section>
 
 </main>
 <footer><div class="wrap">
-<p>Data: Chen, D. (2019), <i>Online Retail II</i>, UCI Machine Learning Repository, CC BY 4.0. <a href="{REPO}/blob/main/data/REAL_DATA_PROVENANCE.md">Source and cleaning rules</a>.</p>
-<p>All figures describe past orders in a public dataset. They are not forecasts and not client work. <a href="{REPO}#readme">How this was built</a>.</p>
+{m["footer"]}
 </div></footer>
 </body>
 </html>

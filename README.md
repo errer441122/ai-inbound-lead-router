@@ -12,6 +12,41 @@ client work.
 
 [![The live page: headline figures and RFM segments](assets/web_dashboard.png)](https://errer441122.github.io/digital-campaign-performance-dashboard/)
 
+## Run it on your own store
+
+The page above is one example output. The same report runs on any store's
+orders export:
+
+```bash
+python src/store_report.py --orders orders_export.csv --store "Your shop" --currency EUR
+```
+
+It takes the export straight from Shopify (*Orders > Export*: line items are
+folded into orders, cancelled, refunded and voided orders are left out) or a
+simple CSV with one row per order (`email` or `customer_id`, `order_date`,
+`order_value`, optional `country`). Into `report/` it writes:
+
+| File | What it is for |
+| --- | --- |
+| `index.html` | This same page for your store, in your currency, ready to share with a client or a manager |
+| `customers.csv` | One row per customer, most valuable first: RFM segment, lifecycle stage and the action for each. The list the CRM team works from |
+| `summary.json` | Every number on the page |
+
+Sections the data cannot fill are left out rather than shown empty: markets
+with fewer than 30 customers, the second-order timing before a year of
+history. Under 100 customers the report says the numbers are a first sketch.
+Nothing leaves the machine, and `report/` is gitignored because the list
+holds customer emails. Check consent before mailing anyone from it: my
+[lifecycle-automation-lab](https://github.com/errer441122/lifecycle-automation-lab)
+does that before it writes to Klaviyo.
+
+**How I know it is right:** a test runs the report path on the 36,969 real
+orders of this dataset and checks that every published number (segments,
+cohorts, time to second order, value by market, lifecycle stages) comes out
+identical. The Shopify reading is tested on a handwritten file in Shopify's
+export layout ([`data/shopify_orders_example.csv`](data/shopify_orders_example.csv)),
+not yet on a real store's export.
+
 ## What the data says
 
 - **Champions are 26% of customers and 71% of revenue.** Keeping them matters

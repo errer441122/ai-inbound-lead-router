@@ -39,6 +39,7 @@ jobs:
           python src/crm_lifecycle.py
           python src/build_dashboard.py
           python src/build_web_dashboard.py
+          python src/store_report.py --orders data/shopify_orders_example.csv --store "Example shop" --out build/report
 
       - name: Committed reports must match the code that generates them
         # A report edited by hand, or code changed without re-running it, fails
