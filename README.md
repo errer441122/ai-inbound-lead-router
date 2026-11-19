@@ -1,161 +1,85 @@
-# CRM retention practice: RFM, lifecycle and repeat purchases
+# Ads-to-CRM Revenue, Consent & Repeat-Purchase Reconciler
 
-A practice project on a public dataset. I wanted to answer a question every
-online shop has: **which customers bring the revenue, who is about to leave,
-and what should the CRM team send to each group?**
+Reconcile **Meta Ads Manager** and **GA4** ad spend directly against verified **GDPR Double Opt-In** consent and real **1st-order / 2nd-order** (or B2B **MQL → SQL → Closed-Won**) revenue in **Klaviyo**, **HubSpot**, and **Shopify**.
 
-The data is 36,969 orders from 5,878 customers of a UK online retailer
-(UCI *Online Retail II*, December 2009 to December 2011, in pounds). It is not
-client work.
+**[Launch the browser workbench (zero upload — runs locally via Pyodide)](https://errer441122.github.io/digital-campaign-performance-dashboard/)**
 
-**[Open the live page](https://errer441122.github.io/digital-campaign-performance-dashboard/)**
+---
 
-[![The live page: headline figures and RFM segments](assets/web_dashboard.png)](https://errer441122.github.io/digital-campaign-performance-dashboard/)
+## Operational Gap Covered
 
-## Run it on your own store
+Ad platforms optimize for surface conversions (cheap Instant Form CPLs, view-through first orders) without visibility into what happens inside the CRM:
 
-The page above is one example output, on public data. **[Open the report
-builder](https://errer441122.github.io/digital-campaign-performance-dashboard/app.html)**,
-load your store's orders export and get the same report for your customers,
-plus the customer list, to download. The builder runs this repository's Python
-in the browser, so the file never leaves your computer and nothing needs
-installing. Its "try" buttons use a small handwritten Shopify file and the
-36,969 public orders, only to show what the output looks like.
+- **Vanity CPL vs. True Cost per Verified Opt-In (CPVL):** a Meta Lead Ads campaign can show a low CPL while 80% of leads never confirm GDPR Double Opt-In, arrive as non-compliant single opt-in leaks, or hard bounce.
+- **ROAS Inflation vs. Net Repeat Economics:** platform ROAS includes refunded/cancelled orders and heavy coupon burn, and never distinguishes *one-and-done discount hunters* from campaigns that bring full-price **2nd-order repeat buyers**.
+- **B2B Lead Quality Drop (Dreamdata / HockeyStack model):** paid campaigns can flood HubSpot with unconfirmed leads or MQLs that never turn into SQLs or Closed-Won pipeline.
 
-The same report runs from the command line:
+---
 
-```bash
-python src/store_report.py --orders orders_export.csv --store "Your shop" --currency EUR
-```
+## Day-1 Native Platform Exports Supported
 
-It takes the export straight from Shopify (*Orders > Export*: line items are
-folded into orders, cancelled, refunded and voided orders are left out) or a
-simple CSV with one row per order (`email` or `customer_id`, `order_date`,
-`order_value`, optional `country`). Files saved again by Excel work too:
-semicolons, decimal commas (`49,90`), dates as `20/05/2026`. Into `report/` it
-writes:
-
-| File | What it is for |
-| --- | --- |
-| `index.html` | This same page for your store, in your currency, ready to share with a client or a manager |
-| `customers.csv` | One row per customer, most valuable first: RFM segment, lifecycle stage and the action for each. The list the CRM team works from |
-| `summary.json` | Every number on the page |
-
-Sections the data cannot fill are left out rather than shown empty: markets
-with fewer than 30 customers, the second-order timing before a year of
-history. Under 100 customers the report says the numbers are a first sketch.
-Nothing leaves the machine, and `report/` is gitignored because the list
-holds customer emails. Check consent before mailing anyone from it: my
-[lifecycle-automation-lab](https://github.com/errer441122/lifecycle-automation-lab)
-does that before it writes to Klaviyo.
-
-**How I know it is right:** a test runs the report path on the 36,969 real
-orders of this dataset and checks that every published number (segments,
-cohorts, time to second order, value by market, lifecycle stages) comes out
-identical. The Shopify reading is tested on a handwritten file in Shopify's
-export layout ([`data/shopify_orders_example.csv`](data/shopify_orders_example.csv)),
-not yet on a real store's export.
-
-## What the data says
-
-- **Champions are 26% of customers and 71% of revenue.** Keeping them matters
-  more than finding new customers.
-- **588 customers are "at risk".** Their last order was 91 to 180 days ago and
-  they have spent £1.06M so far. That is the win-back list.
-- **About one new customer in five orders again the following month** (21%),
-  and the share is still 18% six months later.
-- **Half of the customers who come back do it within 71 days.** 41% of new
-  customers order again within 90 days and 69% within a year. That is the
-  window for a second-order email.
-- **A customer in Germany has spent 48% more than one in the UK** (£3,986
-  against £2,700 per customer).
-
-Full tables: [RFM segments, repeat purchases and value by country](analysis/crm_retention.md) ·
-[lifecycle stages](analysis/crm_lifecycle.md).
-
-## The marketing concepts I used
-
-| Concept | In plain words | What it is for |
+| Category | Platforms | Native CSV Export Accepted |
 | --- | --- | --- |
-| **RFM segmentation** | Score each customer on how recently, how often and how much they buy | Decide who gets which message |
-| **Lifecycle stages** | New, Repeat, At risk, Dormant, Churned, based on the date of the last order | Trigger the right flow at the right time |
-| **Cohort retention** | Of the customers who first bought in a given month, how many come back in the next months | See whether customers return, and how fast they stop |
-| **Time to second order** | How many days pass between a customer's first and second order | Decide when the second-order email goes out |
-| **Revenue per customer by country** | Total spend divided by the number of customers | Compare how much a customer is worth in each market |
+| **Advertising** | **Meta Business (Ads Manager & Lead Center)** | *Ads Manager > Export table data (.csv)* (`Campaign name`, `Amount spent`, `Leads`, `Purchases`, `Purchase ROAS`) + *Instant Forms > Download Leads (.csv / UTF-16 TSV)* |
+| **Web / Product Analytics** | **GA4**, Amplitude, Mixpanel, Adobe Analytics | *GA4 > Traffic/User acquisition > Export CSV* (auto-strips `#` header lines) + generic `email`/`utm_campaign` event attribution adapter |
+| **ESP & CRM** | **Klaviyo**, **HubSpot** | *Klaviyo > Lists & Segments > Export CSV* (consent status, timestamp, method, DOI flag, `Initial Campaign`) · *HubSpot > Contacts & Deals Export* (`Lifecycle Stage`, `Double opt-in status`, `Original Traffic Source Drill-Down 1`, `Deal Stage`, `Amount`) |
+| **E-commerce** | **Shopify** | *Orders > Export* (multi-line-item folding, exclusion of cancelled/refunded/voided orders, `Discount Amount`, 1st & 2nd distinct-day purchase tracking) |
+| **Data Warehouse & BI** | **BigQuery**, **Snowflake**, **Databricks**, **Power BI**, **Tableau**, **Looker** | Star-schema `fact_ads_crm_funnel.csv` + ready-to-deploy SQL models in [`sql/`](sql/) |
 
-The lifecycle rules are the same ones my
-[Lifecycle Automation Lab](https://github.com/errer441122/lifecycle-automation-lab)
-uses to trigger a win-back flow in Klaviyo.
+---
 
-## Real-World Business Application (Next Steps)
+## Immediate Operational Outputs
 
-This is what I would do with these numbers in a real shop. They are
-recommendations, not results: the dataset has no email or advertising data, so
-nothing here has been tested on customers.
+1. **`campaign_budget_actions.csv`** — Per-campaign unit economics with explicit operational decision tags:
+   - `SCALE_PROVEN_REPEAT` / `SCALE_PIPELINE`
+   - `FIX_DOI_CONSENT_LEAK`
+   - `FIX_POST_PURCHASE_RETENTION` / `FIX_LEAD_QUALITY_MQL_DROP`
+   - `PAUSE_WASTE`
+2. **`meta_high_ltv_seed_audience.csv`** — Repeat buyers (2+ orders) or Closed-Won customers with lowercase **SHA-256 hashed emails** ready to upload directly to **Meta Custom Audiences** for high-value Lookalike seeding.
+3. **`meta_low_quality_exclusions.csv`** — Non-converting unconfirmed leads, hard bounces, opted-out contacts, and unconfirmed discount-only buyers (SHA-256 hashed) ready to upload as a **Meta Exclusion Audience** to cut retargeting waste.
+4. **`crm_unconfirmed_paid_leads.csv`** — Paid leads lacking verified GDPR Double Opt-In proof in Klaviyo/HubSpot for immediate form/webhook audit.
+5. **`fact_ads_crm_funnel.csv`** + **`reconciliation_report.html`** + **`sql/*.sql`** — BI-ready star-schema fact table and portable warehouse SQL for BigQuery, Snowflake, and Databricks.
 
-1. **Stop sending the same discount to everyone.** RFM shows who needs a
-   reason to come back and who does not. The offer goes to the win-back group
-   (At risk, Can't lose them). Champions get early access or a thank-you
-   instead: they would have bought anyway, so a discount only costs margin.
-   Long-inactive, low-value customers get one cheap reminder and then leave
-   the mailing list, which also protects deliverability.
-2. **Time the second-order email with the data.** Half of the customers who
-   come back within a year place their second order within 71 days, and 41% of
-   new customers have already ordered again by day 90. A reminder without a
-   discount belongs before day 71; the discount waits for the customers still
-   missing after day 90.
-3. **Start the win-back at day 91, not after a year.** The at-risk group is a
-   short list with a recent purchase history. The group silent for more than a
-   year is 2.7 times larger, and the longer the silence, the harder the return.
-4. **Set the acquisition budget by market.** If a customer in Germany spends
-   48% more over time, paying more to acquire one there can still make sense.
-   One blended target for every country hides that.
-5. **Measure it on real data.** The next step is to run this on a real store
-   export (Shopify orders, Klaviyo campaigns) and compare repeat purchases
-   between customers who received a flow and customers who did not.
+---
 
-## What is in here
-
-| Path | What it does |
-| --- | --- |
-| `analysis/` | The result tables, in Markdown and JSON |
-| `docs/index.html` | The live page, generated from the results |
-| `dashboard/crm_dashboard.xlsx` | The same tables as an Excel workbook |
-| `src/` | The Python scripts that clean the data and build everything above |
-| `notebooks/cross_check.ipynb` | A second calculation of the main numbers, to catch mistakes |
-| `tests/` | Automatic checks that run on every change |
-
-## Run it
+## CLI Usage (Pure Python 3.11 Standard Library — Zero Install)
 
 ```bash
-python -m pip install -r requirements.txt
-python src/validate_data.py
-python src/crm_retention.py
-python src/crm_lifecycle.py
-python src/build_dashboard.py
-python src/build_web_dashboard.py
-python -m pytest -q
+# B2C E-commerce mode (Meta Ads + Meta Leads + Klaviyo + Shopify + GA4)
+python src/reconciler.py --mode b2c \
+  --ads fixtures/meta_ads_manager_schema.csv \
+  --leads fixtures/meta_lead_ads_schema.csv \
+  --crm fixtures/klaviyo_crm_consent_schema.csv \
+  --orders fixtures/shopify_orders_schema.csv \
+  --ga4 fixtures/ga4_acquisition_schema.csv \
+  --out build/b2c_reconcile
+
+# B2B Pipeline mode (Paid Ads + HubSpot Contacts + HubSpot Deals)
+python src/reconciler.py --mode b2b \
+  --ads fixtures/meta_b2b_ads_schema.csv \
+  --crm fixtures/hubspot_b2b_contacts_schema.csv \
+  --deals fixtures/hubspot_b2b_deals_schema.csv \
+  --out build/b2b_reconcile
+
+# Run unit tests
+python -m unittest discover -s tests -v
 ```
 
-## Data and limits
+---
 
-Chen, D. (2019). *Online Retail II*. UCI Machine Learning Repository, CC BY 4.0.
-Source and cleaning rules are in
-[`data/REAL_DATA_PROVENANCE.md`](data/REAL_DATA_PROVENANCE.md).
+## Repository Structure
 
-- This is a public dataset that many people practise on. It has no
-  advertising, web analytics or email data, so nothing here measures a
-  campaign.
-- "Revenue per customer" is what customers have spent so far, not a forecast.
-- The numbers describe what happened. They do not prove what caused it.
-- Earlier versions of this repository also had campaign reports built on data
-  I had simulated. I removed them in November 2026, because numbers I generated
-  myself cannot show how a campaign performs. The repository keeps its original
-  name so existing links keep working.
+| Path | Purpose |
+| --- | --- |
+| `src/ads_crm_io.py` | Native CSV auto-parsers (Meta Ads, Meta Lead Ads UTF-16, GA4, Klaviyo, HubSpot Contacts/Deals, Shopify Orders) + SHA-256 hashing & formula neutralization |
+| `src/reconciler.py` | B2C & B2B campaign reconciliation engine, budget action classifier, Meta audience & BI CSV generator |
+| `src/web_app.py` & `docs/index.html` | Client-side Pyodide browser workbench (zero server upload) |
+| `sql/` | Portable Data Warehouse SQL models for **BigQuery**, **Snowflake**, and **Databricks Delta** |
+| `fixtures/` | Minimal platform schema test fixtures (`example.com` only — no public UCI dataset, no fake case studies) |
+| `tests/` | Automated unit tests covering B2C, B2B, UTF-16 exports, ROAS inflation, SHA-256 hashing, and browser bridge |
 
-## How I built this
+> *Repository note:* Earlier versions of this repository contained an exploratory exercise on the public UCI Online Retail II dataset. That exercise was removed and replaced with this operational Ads-to-CRM reconciliation toolkit while keeping the repository URL intact.
 
-I am a Digital Marketing student, not a developer. I built this with AI coding
-assistants: they wrote most of the code. My part was choosing the question and
-the data, defining the segments and the rules, checking the results against
-the source data and deciding what to report.
+## License
+
+MIT. See [LICENSE](LICENSE).

@@ -1,0 +1,16 @@
+Email,Klaviyo ID,Email Marketing Consent,Email Marketing Consent Timestamp,Email Marketing Consent Method,Email Marketing Double Opt-In,Initial Source,Initial Campaign,Email Suppression Reason
+repeat.winner1@example.com,K001,SUBSCRIBED,2026-03-04T10:18:00Z,KLAVIYO_FORM,true,meta,meta_prospecting_quiz_doi,
+repeat.winner2@example.com,K002,SUBSCRIBED,2026-03-06T12:04:00Z,KLAVIYO_FORM,true,meta,meta_prospecting_quiz_doi,
+single.quiz@example.com,K003,SUBSCRIBED,2026-03-10T15:35:00Z,KLAVIYO_FORM,true,meta,meta_prospecting_quiz_doi,
+prospect.quiz@example.com,K004,SUBSCRIBED,2026-03-12T17:50:00Z,KLAVIYO_FORM,true,meta,meta_prospecting_quiz_doi,
+leak.lead1@example.com,K005,NEVER_SUBSCRIBED,,,false,meta,meta_instantform_cheap_cpl,
+leak.lead2@example.com,K006,SUBSCRIBED,2026-03-07T09:30:00Z,META_INSTANT_FORM_RAW,false,meta,meta_instantform_cheap_cpl,
+leak.lead3@example.com,K007,SUBSCRIBED,2026-03-08T11:00:00Z,META_INSTANT_FORM_RAW,false,meta,meta_instantform_cheap_cpl,
+leak.lead4@example.com,K008,SUBSCRIBED,2026-03-09T14:00:00Z,KLAVIYO_FORM,true,meta,meta_instantform_cheap_cpl,HARD_BOUNCE
+confirmed.form1@example.com,K009,SUBSCRIBED,2026-03-11T16:05:00Z,KLAVIYO_FORM,true,meta,meta_instantform_cheap_cpl,
+promo.hunter1@example.com,K010,SUBSCRIBED,2026-03-15T10:05:00Z,KLAVIYO_FORM,true,meta,meta_flash_coupon_30off,
+promo.hunter2@example.com,K011,SUBSCRIBED,2026-03-16T11:25:00Z,KLAVIYO_FORM,true,meta,meta_flash_coupon_30off,
+promo.hunter3@example.com,K012,UNSUBSCRIBED,2026-03-20T09:00:00Z,UNSUBSCRIBE_LINK,true,meta,meta_flash_coupon_30off,UNSUBSCRIBE
+waste.lead1@example.com,K013,SUBSCRIBED,2026-03-20T08:05:00Z,KLAVIYO_FORM,true,meta,meta_broad_unqualified,
+waste.lead2@example.com,K014,SUBSCRIBED,2026-03-21T09:15:00Z,KLAVIYO_FORM,true,meta,meta_broad_unqualified,
+waste.lead3@example.com,K015,SUBSCRIBED,2026-03-22T10:25:00Z,KLAVIYO_FORM,true,meta,meta_broad_unqualified,HARD_BOUNCE

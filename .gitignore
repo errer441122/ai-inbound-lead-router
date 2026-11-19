@@ -1,7 +1,8 @@
-.venv/
+# Never commit real ad exports, customer emails, or generated outputs
+data/*.csv
+build/
+report/
 __pycache__/
 *.pyc
-.pytest_cache/
-.cache/
-# store_report.py output: customer lists with emails
-report/
+.venv/
+.env

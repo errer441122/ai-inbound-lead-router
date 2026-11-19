@@ -1,24 +1,37 @@
-"""What the browser page (docs/app.html) calls.
-
-The page runs this repository's Python in the browser (Pyodide), so the report
-it shows is built by the same code, and covered by the same tests, as
-store_report.py on the command line. A file the report cannot read comes back
-as {"error": "..."} with the reason, not as a crash. Nothing here opens a
-network connection.
-"""
+"""Pyodide browser bridge for docs/index.html (zero server upload)."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-import store_report as sr
+import reconciler as rec
 
 
-def report(orders_path: str, store: str = "your store", currency: str = "EUR", source_name: str = "") -> str:
-    try:
-        out = sr.make_report(Path(orders_path), store.strip() or "your store", currency or "EUR",
-                             source_name or None)
-    except (SystemExit, ValueError, KeyError) as e:
-        return json.dumps({"error": str(e) or e.__class__.__name__})
-    return json.dumps(out, default=str)
+def _guarded(fn):
+    def run(*args):
+        try:
+            return json.dumps(fn(*args), default=str)
+        except (SystemExit, ValueError, KeyError) as exc:
+            return json.dumps({"error": str(exc) or exc.__class__.__name__})
+    return run
+
+
+@_guarded
+def run_b2c(ads_path: str, crm_path: str, orders_path: str, leads_path: str = "", ga4_path: str = "") -> dict:
+    res = rec.reconcile_b2c(
+        Path(ads_path),
+        Path(crm_path),
+        Path(orders_path),
+        leads_path=Path(leads_path) if leads_path else None,
+        ga4_path=Path(ga4_path) if ga4_path else None,
+    )
+    res["report_html"] = rec.render_report_html(res)
+    return res
+
+
+@_guarded
+def run_b2b(ads_path: str, contacts_path: str, deals_path: str) -> dict:
+    res = rec.reconcile_b2b(Path(ads_path), Path(contacts_path), Path(deals_path))
+    res["report_html"] = rec.render_report_html(res)
+    return res
