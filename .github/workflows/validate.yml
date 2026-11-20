@@ -1,33 +1,20 @@
-name: CI
+name: Validate Workflow & Docs
 
 on:
   push:
     branches:
       - main
   pull_request:
-  workflow_dispatch:
 
 jobs:
-  validate:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Unit tests (pure stdlib, no network)
-        run: python -m unittest discover -s tests -v
-      - name: End-to-end B2C & B2B CLI smoke tests on platform fixtures
+      - name: Verify n8n workflow JSON and 30-case benchmark CSV
         run: |
-          python src/reconciler.py --mode b2c \
-            --ads fixtures/meta_ads_manager_schema.csv \
-            --leads fixtures/meta_lead_ads_schema.csv \
-            --crm fixtures/klaviyo_crm_consent_schema.csv \
-            --orders fixtures/shopify_orders_schema.csv \
-            --ga4 fixtures/ga4_acquisition_schema.csv \
-            --out build/b2c_reconcile
-          python src/reconciler.py --mode b2b \
-            --ads fixtures/meta_b2b_ads_schema.csv \
-            --crm fixtures/hubspot_b2b_contacts_schema.csv \
-            --deals fixtures/hubspot_b2b_deals_schema.csv \
-            --out build/b2b_reconcile
+          python3 -c "import json; w=json.load(open('workflows/ai-inbound-lead-router.n8n.json')); assert len(w['nodes'])>=12 and w['connections']"
+          python3 -c "import csv; rows=list(csv.DictReader(open('data/real-companies-benchmark.csv'))); assert len(rows)==30, len(rows)"
+          test -f docs/field-ownership-matrix.md
+          test -f docs/sop-inbound-lead-routing.md
+          test -f prompts/icp-scoring-prompt.md

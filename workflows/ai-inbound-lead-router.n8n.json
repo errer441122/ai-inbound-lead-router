@@ -1,0 +1,328 @@
+{
+  "name": "AI Inbound Lead Enrichment, ICP Scoring & HubSpot Routing",
+  "nodes": [
+    {
+      "id": "1",
+      "name": "Webhook: Inbound Form + UTMs",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [180, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "inbound-lead-router",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "notes": "Receives form submit payload: email, first_name, company_name, message, utm_source, utm_medium, utm_campaign, page_url."
+    },
+    {
+      "id": "2",
+      "name": "Normalize Lead & Extract Domain",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [420, 300],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "email", "value": "={{ ($json.body.email || '').trim().toLowerCase() }}", "type": "string" },
+            { "id": "a2", "name": "domain", "value": "={{ (($json.body.email || '').trim().toLowerCase().split('@')[1]) || '' }}", "type": "string" },
+            { "id": "a3", "name": "utm_source", "value": "={{ ($json.body.utm_source || 'direct').trim().toLowerCase() }}", "type": "string" },
+            { "id": "a4", "name": "utm_medium", "value": "={{ ($json.body.utm_medium || 'none').trim().toLowerCase() }}", "type": "string" },
+            { "id": "a5", "name": "utm_campaign", "value": "={{ ($json.body.utm_campaign || 'unattributed').trim().toLowerCase() }}", "type": "string" },
+            { "id": "a6", "name": "message", "value": "={{ ($json.body.message || '').trim() }}", "type": "string" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "3",
+      "name": "Guard: Corporate Email Check",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 300],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ ['gmail.com','yahoo.com','hotmail.com','outlook.com','libero.it','icloud.com','proton.me'].includes($json.domain) }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            },
+            {
+              "leftValue": "={{ $json.domain }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ]
+        }
+      },
+      "notes": "Free personal domains skip enrichment & AI scoring to prevent credit waste and route to self-serve nurture."
+    },
+    {
+      "id": "4",
+      "name": "HubSpot: Route Free Email (Self-Serve)",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [900, 520],
+      "parameters": {
+        "resource": "contact",
+        "operation": "upsert",
+        "email": "={{ $json.email }}",
+        "additionalFields": {
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              { "property": "icp_tier", "value": "Tier 3 - Free Email" },
+              { "property": "routing_status", "value": "self_serve_nurture" },
+              { "property": "last_touch_utm_source", "value": "={{ $json.utm_source }}" },
+              { "property": "last_touch_utm_campaign", "value": "={{ $json.utm_campaign }}" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "5",
+      "name": "HubSpot: Search Existing Contact",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [900, 220],
+      "parameters": {
+        "resource": "contact",
+        "operation": "search",
+        "filterGroupsUi": {
+          "filterGroupsValues": [
+            {
+              "filtersUi": {
+                "filterValues": [
+                  { "propertyName": "email", "operator": "EQ", "value": "={{ $json.email }}" }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "notes": "Enforces Field Ownership Matrix: checks whether First Touch UTM or Sales-owned lifecycle fields are already populated."
+    },
+    {
+      "id": "6",
+      "name": "HTTP: Fetch Public Homepage Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 220],
+      "continueOnFail": true,
+      "parameters": {
+        "url": "=https://{{ $('Normalize Lead & Extract Domain').item.json.domain }}",
+        "options": {
+          "timeout": 8000,
+          "redirect": { "redirect": { "followRedirects": true, "maxRedirects": 3 } }
+        }
+      },
+      "notes": "Lightweight public website lookup. continueOnFail=true ensures unreachable domains route to human review instead of dropping the lead."
+    },
+    {
+      "id": "7",
+      "name": "AI: Structured ICP Qualification (JSON)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 220],
+      "continueOnFail": true,
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.1, response_format: { type: 'json_object' }, messages: [ { role: 'system', content: 'You are a B2B Marketing Operations ICP qualifier. Classify the company using ONLY the provided domain, website snippet, and inbound message. Return strictly JSON with keys: icp_tier (Tier 1 | Tier 2 | Tier 3), confidence_score (0-100), business_model, industry, reasoning (1 sentence), personalized_hook (1 factual sentence), risk_flags (array). If website data is missing or ambiguous, set confidence_score below 75.' }, { role: 'user', content: JSON.stringify({ domain: $('Normalize Lead & Extract Domain').item.json.domain, inbound_message: $('Normalize Lead & Extract Domain').item.json.message, homepage_excerpt: String($json.data || '').replace(/<[^>]+>/g, ' ').slice(0, 2500) }) } ] }) }}"
+      },
+      "notes": "Low temperature (0.1) + strict JSON object output contract. See prompts/icp-scoring-prompt.md."
+    },
+    {
+      "id": "8",
+      "name": "Guard: AI Confidence >= 80%",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1620, 220],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ JSON.parse($json.choices?.[0]?.message?.content || '{}').confidence_score || 0 }}",
+              "rightValue": 80,
+              "operator": { "type": "number", "operation": "gte" }
+            }
+          ]
+        }
+      },
+      "notes": "Human-in-the-loop guardrail: low-confidence or failed AI responses NEVER auto-route to Sales."
+    },
+    {
+      "id": "9",
+      "name": "HubSpot: Flag Needs Manual Review",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [1880, 420],
+      "parameters": {
+        "resource": "contact",
+        "operation": "upsert",
+        "email": "={{ $('Normalize Lead & Extract Domain').item.json.email }}",
+        "additionalFields": {
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              { "property": "routing_status", "value": "needs_human_review" },
+              { "property": "ai_confidence_score", "value": "={{ JSON.parse($json.choices?.[0]?.message?.content || '{}').confidence_score || 0 }}" },
+              { "property": "last_touch_utm_campaign", "value": "={{ $('Normalize Lead & Extract Domain').item.json.utm_campaign }}" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "10",
+      "name": "Switch: Route by ICP Tier",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1880, 120],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "Tier 1",
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ JSON.parse($json.choices[0].message.content).icp_tier }}",
+                    "rightValue": "Tier 1",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              }
+            },
+            {
+              "outputKey": "Tier 2",
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ JSON.parse($json.choices[0].message.content).icp_tier }}",
+                    "rightValue": "Tier 2",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      }
+    },
+    {
+      "id": "11",
+      "name": "HubSpot: Upsert Tier 1 (Preserve First-Touch UTM)",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [2160, 40],
+      "parameters": {
+        "resource": "contact",
+        "operation": "upsert",
+        "email": "={{ $('Normalize Lead & Extract Domain').item.json.email }}",
+        "additionalFields": {
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              { "property": "icp_tier", "value": "Tier 1" },
+              { "property": "routing_status", "value": "sales_fast_track" },
+              { "property": "ai_icp_reasoning", "value": "={{ JSON.parse($json.choices[0].message.content).reasoning }}" },
+              { "property": "ai_personalized_hook", "value": "={{ JSON.parse($json.choices[0].message.content).personalized_hook }}" },
+              { "property": "first_touch_utm_campaign", "value": "={{ $('HubSpot: Search Existing Contact').item.json.properties?.first_touch_utm_campaign || $('Normalize Lead & Extract Domain').item.json.utm_campaign }}" },
+              { "property": "last_touch_utm_campaign", "value": "={{ $('Normalize Lead & Extract Domain').item.json.utm_campaign }}" }
+            ]
+          }
+        }
+      },
+      "notes": "Never overwrites existing first_touch_utm_campaign or Sales-owned lifecycle/deal fields."
+    },
+    {
+      "id": "12",
+      "name": "Slack: Instant Tier 1 Sales Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [2420, 40],
+      "parameters": {
+        "channel": "#inbound-tier1-leads",
+        "text": "=*Tier 1 Inbound Lead* ({{ $('Normalize Lead & Extract Domain').item.json.domain }})\n*Email:* {{ $('Normalize Lead & Extract Domain').item.json.email }}\n*Campaign:* {{ $('Normalize Lead & Extract Domain').item.json.utm_source }} / {{ $('Normalize Lead & Extract Domain').item.json.utm_campaign }}\n*Why Tier 1:* {{ JSON.parse($('AI: Structured ICP Qualification (JSON)').item.json.choices[0].message.content).reasoning }}\n*Suggested opener (review before sending):* {{ JSON.parse($('AI: Structured ICP Qualification (JSON)').item.json.choices[0].message.content).personalized_hook }}"
+      }
+    },
+    {
+      "id": "13",
+      "name": "HubSpot: Upsert Tier 2/3 Nurture",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [2160, 220],
+      "parameters": {
+        "resource": "contact",
+        "operation": "upsert",
+        "email": "={{ $('Normalize Lead & Extract Domain').item.json.email }}",
+        "additionalFields": {
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              { "property": "icp_tier", "value": "={{ JSON.parse($json.choices[0].message.content).icp_tier }}" },
+              { "property": "routing_status", "value": "marketing_nurture" },
+              { "property": "ai_icp_reasoning", "value": "={{ JSON.parse($json.choices[0].message.content).reasoning }}" },
+              { "property": "last_touch_utm_campaign", "value": "={{ $('Normalize Lead & Extract Domain').item.json.utm_campaign }}" }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "14",
+      "name": "Error Trigger: Workflow Failure Alert",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [180, 560],
+      "parameters": {}
+    },
+    {
+      "id": "15",
+      "name": "Slack: Alert #martech-alerts on Failure",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [440, 560],
+      "parameters": {
+        "channel": "#martech-alerts",
+        "text": "=:warning: *AI Inbound Lead Router failed* on node `{{ $json.execution.lastNodeExecuted }}`: {{ $json.execution.error.message }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: Inbound Form + UTMs": { "main": [[{ "node": "Normalize Lead & Extract Domain", "type": "main", "index": 0 }]] },
+    "Normalize Lead & Extract Domain": { "main": [[{ "node": "Guard: Corporate Email Check", "type": "main", "index": 0 }]] },
+    "Guard: Corporate Email Check": {
+      "main": [
+        [{ "node": "HubSpot: Search Existing Contact", "type": "main", "index": 0 }],
+        [{ "node": "HubSpot: Route Free Email (Self-Serve)", "type": "main", "index": 0 }]
+      ]
+    },
+    "HubSpot: Search Existing Contact": { "main": [[{ "node": "HTTP: Fetch Public Homepage Context", "type": "main", "index": 0 }]] },
+    "HTTP: Fetch Public Homepage Context": { "main": [[{ "node": "AI: Structured ICP Qualification (JSON)", "type": "main", "index": 0 }]] },
+    "AI: Structured ICP Qualification (JSON)": { "main": [[{ "node": "Guard: AI Confidence >= 80%", "type": "main", "index": 0 }]] },
+    "Guard: AI Confidence >= 80%": {
+      "main": [
+        [{ "node": "Switch: Route by ICP Tier", "type": "main", "index": 0 }],
+        [{ "node": "HubSpot: Flag Needs Manual Review", "type": "main", "index": 0 }]
+      ]
+    },
+    "Switch: Route by ICP Tier": {
+      "main": [
+        [{ "node": "HubSpot: Upsert Tier 1 (Preserve First-Touch UTM)", "type": "main", "index": 0 }],
+        [{ "node": "HubSpot: Upsert Tier 2/3 Nurture", "type": "main", "index": 0 }],
+        [{ "node": "HubSpot: Upsert Tier 2/3 Nurture", "type": "main", "index": 0 }]
+      ]
+    },
+    "HubSpot: Upsert Tier 1 (Preserve First-Touch UTM)": { "main": [[{ "node": "Slack: Instant Tier 1 Sales Alert", "type": "main", "index": 0 }]] },
+    "Error Trigger: Workflow Failure Alert": { "main": [[{ "node": "Slack: Alert #martech-alerts on Failure", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

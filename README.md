@@ -1,84 +1,79 @@
-# Ads-to-CRM Revenue, Consent & Repeat-Purchase Reconciler
+# AI Inbound Lead Enrichment, ICP Scoring & HubSpot Routing
 
-Reconcile **Meta Ads Manager** and **GA4** ad spend directly against verified **GDPR Double Opt-In** consent and real **1st-order / 2nd-order** (or B2B **MQL → SQL → Closed-Won**) revenue in **Klaviyo**, **HubSpot**, and **Shopify**.
+A visual **n8n + HubSpot + LLM** workflow system that turns raw inbound form submissions into clean, deduplicated, UTM-attributed, ICP-scored CRM records and instant Tier 1 Sales alerts — with explicit guardrails for free emails, field ownership, low AI confidence, and workflow failures.
 
-**[Launch the browser workbench (zero upload — runs locally via Pyodide)](https://errer441122.github.io/digital-campaign-performance-dashboard/)**
-
----
-
-## Operational Gap Covered
-
-Ad platforms optimize for surface conversions (cheap Instant Form CPLs, view-through first orders) without visibility into what happens inside the CRM:
-
-- **Vanity CPL vs. True Cost per Verified Opt-In (CPVL):** a Meta Lead Ads campaign can show a low CPL while 80% of leads never confirm GDPR Double Opt-In, arrive as non-compliant single opt-in leaks, or hard bounce.
-- **ROAS Inflation vs. Net Repeat Economics:** platform ROAS includes refunded/cancelled orders and heavy coupon burn, and never distinguishes *one-and-done discount hunters* from campaigns that bring full-price **2nd-order repeat buyers**.
-- **B2B Lead Quality Drop (Dreamdata / HockeyStack model):** paid campaigns can flood HubSpot with unconfirmed leads or MQLs that never turn into SQLs or Closed-Won pipeline.
+**[Explore the interactive workflow walkthrough](https://errer441122.github.io/ai-inbound-lead-router/)** · **[Download n8n blueprint (`workflows/ai-inbound-lead-router.n8n.json`)](workflows/ai-inbound-lead-router.n8n.json)**
 
 ---
 
-## Day-1 Native Platform Exports Supported
+## The Business Problem
 
-| Category | Platforms | Native CSV Export Accepted |
-| --- | --- | --- |
-| **Advertising** | **Meta Business (Ads Manager & Lead Center)** | *Ads Manager > Export table data (.csv)* (`Campaign name`, `Amount spent`, `Leads`, `Purchases`, `Purchase ROAS`) + *Instant Forms > Download Leads (.csv / UTF-16 TSV)* |
-| **Web / Product Analytics** | **GA4**, Amplitude, Mixpanel, Adobe Analytics | *GA4 > Traffic/User acquisition > Export CSV* (auto-strips `#` header lines) + generic `email`/`utm_campaign` event attribution adapter |
-| **ESP & CRM** | **Klaviyo**, **HubSpot** | *Klaviyo > Lists & Segments > Export CSV* (consent status, timestamp, method, DOI flag, `Initial Campaign`) · *HubSpot > Contacts & Deals Export* (`Lifecycle Stage`, `Double opt-in status`, `Original Traffic Source Drill-Down 1`, `Deal Stage`, `Amount`) |
-| **E-commerce** | **Shopify** | *Orders > Export* (multi-line-item folding, exclusion of cancelled/refunded/voided orders, `Discount Amount`, 1st & 2nd distinct-day purchase tracking) |
-| **Data Warehouse & BI** | **BigQuery**, **Snowflake**, **Databricks**, **Power BI**, **Tableau**, **Looker** | Star-schema `fact_ads_crm_funnel.csv` + ready-to-deploy SQL models in [`sql/`](sql/) |
+In most B2B and e-commerce growth teams, inbound forms dump unverified leads straight into the CRM:
+- **Slow speed-to-lead:** high-fit prospects sit in the same generic inbox as personal `gmail.com` inquiries and students.
+- **Dirty CRM & broken attribution:** repeat form fills overwrite original `First Touch UTM` values or clobber Sales-owned deal/lifecycle fields.
+- **Unsafe AI automation:** naive LLM workflows hallucinate company facts or auto-send unreviewed emails when a company website is unreachable.
 
 ---
 
-## Immediate Operational Outputs
+## System Architecture (15-Node n8n Workflow)
 
-1. **`campaign_budget_actions.csv`** — Per-campaign unit economics with explicit operational decision tags:
-   - `SCALE_PROVEN_REPEAT` / `SCALE_PIPELINE`
-   - `FIX_DOI_CONSENT_LEAK`
-   - `FIX_POST_PURCHASE_RETENTION` / `FIX_LEAD_QUALITY_MQL_DROP`
-   - `PAUSE_WASTE`
-2. **`meta_high_ltv_seed_audience.csv`** — Repeat buyers (2+ orders) or Closed-Won customers with lowercase **SHA-256 hashed emails** ready to upload directly to **Meta Custom Audiences** for high-value Lookalike seeding.
-3. **`meta_low_quality_exclusions.csv`** — Non-converting unconfirmed leads, hard bounces, opted-out contacts, and unconfirmed discount-only buyers (SHA-256 hashed) ready to upload as a **Meta Exclusion Audience** to cut retargeting waste.
-4. **`crm_unconfirmed_paid_leads.csv`** — Paid leads lacking verified GDPR Double Opt-In proof in Klaviyo/HubSpot for immediate form/webhook audit.
-5. **`fact_ads_crm_funnel.csv`** + **`reconciliation_report.html`** + **`sql/*.sql`** — BI-ready star-schema fact table and portable warehouse SQL for BigQuery, Snowflake, and Databricks.
-
----
-
-## CLI Usage (Pure Python 3.11 Standard Library — Zero Install)
-
-```bash
-# B2C E-commerce mode (Meta Ads + Meta Leads + Klaviyo + Shopify + GA4)
-python src/reconciler.py --mode b2c \
-  --ads fixtures/meta_ads_manager_schema.csv \
-  --leads fixtures/meta_lead_ads_schema.csv \
-  --crm fixtures/klaviyo_crm_consent_schema.csv \
-  --orders fixtures/shopify_orders_schema.csv \
-  --ga4 fixtures/ga4_acquisition_schema.csv \
-  --out build/b2c_reconcile
-
-# B2B Pipeline mode (Paid Ads + HubSpot Contacts + HubSpot Deals)
-python src/reconciler.py --mode b2b \
-  --ads fixtures/meta_b2b_ads_schema.csv \
-  --crm fixtures/hubspot_b2b_contacts_schema.csv \
-  --deals fixtures/hubspot_b2b_deals_schema.csv \
-  --out build/b2b_reconcile
-
-# Run unit tests
-python -m unittest discover -s tests -v
+```mermaid
+flowchart LR
+    W["1. Inbound Form Webhook + UTMs"] --> N["2. Normalize Email & Domain"]
+    N --> G1{"3. Corporate Email?"}
+    G1 -- "No (gmail / libero / etc.)" --> FS["4. HubSpot Self-Serve Nurture (Zero AI cost)"]
+    G1 -- "Yes" --> HS["5. HubSpot Duplicate & First-Touch Check"]
+    HS --> H["6. Fetch Public Website Context (continueOnFail)"]
+    H --> AI["7. AI Structured ICP Scoring (JSON, temp 0.1)"]
+    AI --> G2{"8. Confidence >= 80%?"}
+    G2 -- "No / Blocked Site" --> MR["9. HubSpot Flag: needs_human_review"]
+    G2 -- "Yes" --> SW{"10. Route by ICP Tier"}
+    SW -- "Tier 1" --> T1["11. HubSpot Upsert (Field Ownership Rules)"] --> SL["12. Slack Instant Sales Alert"]
+    SW -- "Tier 2 / 3" --> T2["13. HubSpot Segmented Nurture"]
 ```
 
+*Global safety net:* an `Error Trigger` node catches any API timeout or 429 error and alerts `#martech-alerts` so no lead is ever dropped silently.
+
 ---
+
+## Key Operational Guardrails
+
+| Risk | How This Workflow Handles It | Documentation |
+| --- | --- | --- |
+| **Wasted enrichment/AI credits on personal emails** | Pre-AI `IF` gate blocks `gmail.com`, `yahoo.com`, `libero.it`, `outlook.com`, `icloud.com`, routing them straight to self-serve nurture | [`workflows/ai-inbound-lead-router.n8n.json`](workflows/ai-inbound-lead-router.n8n.json) |
+| **Overwriting Sales data or First-Touch UTMs** | Contact lookup runs before every write; `first_touch_utm_*` is **fill-if-blank only**, `last_touch_utm_*` always refreshes, Sales-owned fields are never overwritten | [`docs/field-ownership-matrix.md`](docs/field-ownership-matrix.md) |
+| **AI hallucinations or blocked websites** | Strict JSON output contract (`temperature = 0.1`), `continueOnFail = true` on website fetch, and a hard **`confidence_score >= 80` gate** routing uncertain cases to `needs_human_review` | [`prompts/icp-scoring-prompt.md`](prompts/icp-scoring-prompt.md) |
+| **Unreviewed AI emails sent to prospects** | **Human-in-the-loop by design:** the AI opener is posted only inside Slack for a rep to verify before sending | [`docs/sop-inbound-lead-routing.md`](docs/sop-inbound-lead-routing.md) |
+
+---
+
+## 30-Case Routing Benchmark (25 Real European Companies + 5 Guardrail Edge Cases)
+
+Full rubric test matrix: [`data/real-companies-benchmark.csv`](data/real-companies-benchmark.csv)
+
+- **25 real European D2C & B2B SaaS public domains** (*Velasca, Cortilia, Tannico, Gymshark, Huel, Factorial, Qonto, Brevo, Typeform, Holded, Pipedrive, Fatture in Cloud, Pennylane, Scalapay, Casavo, Satispay, Bending Spoons, Subito, Vinted, Too Good To Go, Klarna, N26, Revolut, Wise, Zalando*) mapped to clear Tier 1 vs. Tier 2 routing rules based on real business model + inbound intent.
+- **3 personal free-email hygiene cases** (`gmail.com`, `libero.it`, `outlook.com`) verifying zero AI spend on personal domains.
+- **2 failure / low-confidence cases** verifying the `needs_human_review` fallback when a site blocks fetching or the message is ambiguous.
+- **Estimated API unit cost:** ~€0.001–€0.002 per qualified corporate lead (~€1–€2 per 1,000 leads on `gpt-4o-mini` / `gemini-2.5-flash`).
+
+---
+
+## Quick Import & Walkthrough
+
+1. Open n8n (local or cloud) → **Workflows → Import from File** → select [`workflows/ai-inbound-lead-router.n8n.json`](workflows/ai-inbound-lead-router.n8n.json).
+2. Connect a free **HubSpot** Private App, an LLM API key, and Slack following [`docs/sop-inbound-lead-routing.md`](docs/sop-inbound-lead-routing.md).
+3. Send a test POST request to the Webhook URL and inspect the Contact record in HubSpot + alert in Slack.
 
 ## Repository Structure
 
-| Path | Purpose |
+| Path | Content |
 | --- | --- |
-| `src/ads_crm_io.py` | Native CSV auto-parsers (Meta Ads, Meta Lead Ads UTF-16, GA4, Klaviyo, HubSpot Contacts/Deals, Shopify Orders) + SHA-256 hashing & formula neutralization |
-| `src/reconciler.py` | B2C & B2B campaign reconciliation engine, budget action classifier, Meta audience & BI CSV generator |
-| `src/web_app.py` & `docs/index.html` | Client-side Pyodide browser workbench (zero server upload) |
-| `sql/` | Portable Data Warehouse SQL models for **BigQuery**, **Snowflake**, and **Databricks Delta** |
-| `fixtures/` | Minimal platform schema test fixtures (`example.com` only — no public UCI dataset, no fake case studies) |
-| `tests/` | Automated unit tests covering B2C, B2B, UTF-16 exports, ROAS inflation, SHA-256 hashing, and browser bridge |
-
-> *Repository note:* Earlier versions of this repository contained an exploratory exercise on the public UCI Online Retail II dataset. That exercise was removed and replaced with this operational Ads-to-CRM reconciliation toolkit while keeping the repository URL intact.
+| `workflows/ai-inbound-lead-router.n8n.json` | 1-click importable 15-node n8n workflow blueprint |
+| `prompts/icp-scoring-prompt.md` | ICP rubric, system prompt, JSON output contract & hallucination guardrails |
+| `docs/field-ownership-matrix.md` | CRM overwrite & First-Touch / Last-Touch UTM governance rules |
+| `docs/sop-inbound-lead-routing.md` | 10-minute setup & daily/monthly Operations SOP |
+| `data/real-companies-benchmark.csv` | 30-case benchmark across 25 real European companies + 5 edge-case guardrails |
+| `docs/index.html` | Interactive visual workflow explorer (GitHub Pages) |
 
 ## License
 
