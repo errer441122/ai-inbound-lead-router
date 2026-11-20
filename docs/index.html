@@ -4,413 +4,672 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>AI Inbound Lead Router &mdash; Interactive Walkthrough</title>
-<meta name="description" content="Visual interactive walkthrough of an n8n + HubSpot + AI ICP Scoring workflow with free-email filtering, Field Ownership rules, and human-in-the-loop confidence gating.">
+<title>AI Inbound Lead Router: interactive walkthrough</title>
+<meta name="description" content="Run five example leads through a 15-node n8n workflow drawn from its own file: free-email filter, HubSpot field ownership, AI confidence gate and failure alerts.">
+<link rel="preload" href="fonts/geist-sans-600.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+@font-face { font-family: "Geist"; src: url("fonts/geist-sans-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Geist"; src: url("fonts/geist-sans-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Geist Mono"; src: url("fonts/geist-mono-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+
 :root {
   color-scheme: light;
-  --bg: #f6f7fb; --card: #ffffff; --sub: #f8f9fc; --ink: #0f172a; --ink2: #475569; --muted: #64748b;
-  --line: #e2e8f0; --accent: #2563eb; --accent-ink: #ffffff; --accent-soft: #eff6ff;
-  --ok: #0f766e; --ok-bg: #ecfdf5; --ok-bd: #a7f3d0;
-  --warn: #b45309; --warn-bg: #fffbeb; --warn-bd: #fde68a;
-  --bad: #b91c1c; --bad-bg: #fef2f2; --bad-bd: #fecaca;
-  --hs: #ff7a59; --slack-bg: #1a1d21; --slack-ink: #f8fafc; --slack-muted: #94a3b8;
+  --page: #f4f4f5; --panel: #fbfbfb; --sunk: #ebebed;
+  --ink: #18181b; --ink-2: #3f3f46; --muted: #5f5f68;
+  --line: #d9d9de; --line-soft: #e7e7ea; --dot: #cfcfd5;
+  --accent: #c2410c; --accent-ink: #fff8f3; --accent-soft: #fbe8dd; --accent-line: #eab08f;
+  --shadow: 0 1px 2px rgb(24 24 27 / .06), 0 8px 24px -12px rgb(24 24 27 / .18);
+  --r: 6px;
+  --sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #0b1020; --card: #111827; --sub: #172033; --ink: #f1f5f9; --ink2: #cbd5e1; --muted: #94a3b8;
-    --line: #243047; --accent: #60a5fa; --accent-ink: #071226; --accent-soft: #172554;
-    --ok: #34d399; --ok-bg: #0c291f; --ok-bd: #14533d;
-    --warn: #fbbf24; --warn-bg: #2c210b; --warn-bd: #5c4212;
-    --bad: #f87171; --bad-bg: #2f1417; --bad-bd: #632227;
-    --slack-bg: #0f1318; --slack-ink: #f8fafc; --slack-muted: #94a3b8;
+    --page: #111113; --panel: #18181b; --sunk: #202024;
+    --ink: #f3f3f4; --ink-2: #d4d4d8; --muted: #a1a1aa;
+    --line: #2f2f35; --line-soft: #26262b; --dot: #2c2c32;
+    --accent: #fb923c; --accent-ink: #1c0c02; --accent-soft: rgb(251 146 60 / .13); --accent-line: rgb(251 146 60 / .5);
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 10px 28px -14px rgb(0 0 0 / .7);
   }
 }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 15.5px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
-a { color: var(--accent); text-underline-offset: 3px; }
-code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.88em; background: var(--sub); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); }
-.wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
 
-header.nav { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line); }
-header.nav .wrap { display: flex; align-items: center; gap: 18px; min-height: 58px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
-.brand { font-weight: 800; color: var(--ink); text-decoration: none; letter-spacing: -0.02em; font-size: 15px; }
-.nav-links { display: flex; gap: 14px; font-size: 13.5px; margin-left: auto; flex-wrap: wrap; }
-.nav-links a { color: var(--ink2); text-decoration: none; font-weight: 500; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 16px/1.6 var(--sans); }
+a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { color: var(--accent); }
+code, .mono { font-family: var(--mono); font-size: .9em; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+h1, h2, h3 { font-weight: 600; letter-spacing: -0.025em; margin: 0; }
+h2 { font-size: clamp(24px, 2.6vw, 32px); line-height: 1.15; }
+.sub2 { color: var(--muted); max-width: 62ch; margin: 10px 0 0; }
+
+/* nav */
+.nav { border-bottom: 1px solid var(--line); }
+.nav .wrap { display: flex; align-items: center; gap: 28px; height: 60px; }
+.brand { font-family: var(--mono); font-size: 14px; text-decoration: none; white-space: nowrap; }
+.brand b { font-weight: 400; color: var(--accent); }
+.nav-links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; white-space: nowrap; }
+.nav-links a { text-decoration: none; color: var(--ink-2); }
 .nav-links a:hover { color: var(--accent); }
 
-.hero { padding: 44px 0 26px; }
-.kicker { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
-h1 { font-size: clamp(28px, 4vw, 42px); line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 12px; max-width: 24ch; }
-.lead { font-size: 17px; color: var(--ink2); max-width: 72ch; margin: 0 0 20px; }
-.cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; font-weight: 600; font-size: 14px; text-decoration: none; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer; }
-.btn.ghost { background: transparent; color: var(--accent); }
+/* hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 56px; padding-top: 64px; padding-bottom: 40px; align-items: end; }
+.eyebrow { font-family: var(--mono); font-size: 13px; color: var(--accent); margin: 0 0 18px; }
+h1 { font-size: clamp(34px, 3.9vw, 50px); line-height: 1.04; letter-spacing: -0.04em; max-width: 19em; }
+.lede { font-size: 18px; color: var(--ink-2); max-width: 46ch; margin: 20px 0 30px; }
+.ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn { display: inline-flex; align-items: center; gap: 10px; height: 46px; padding: 0 20px; border-radius: var(--r); font: 600 15px var(--sans); text-decoration: none; white-space: nowrap; border: 1px solid var(--ink); background: var(--ink); color: var(--page); cursor: pointer; transition: transform .2s cubic-bezier(.16,1,.3,1), background .2s; }
+.btn:hover { color: var(--page); background: var(--accent); border-color: var(--accent); }
+.btn:active { transform: translateY(1px) scale(.99); }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn.ghost:hover { color: var(--accent); border-color: var(--accent); background: transparent; }
 
-.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
-.cmp { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
-.cmp.before { border-left: 4px solid var(--bad); }
-.cmp.after { border-left: 4px solid var(--ok); }
-.cmp h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 8px; }
-.cmp.before h2 { color: var(--bad); }
-.cmp.after h2 { color: var(--ok); }
-.cmp ul { margin: 0; padding-left: 18px; font-size: 14.5px; color: var(--ink2); display: grid; gap: 5px; }
+.picker { border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); box-shadow: var(--shadow); }
+.picker-h { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 16px 10px; border-bottom: 1px solid var(--line-soft); }
+.picker-h span { font-weight: 600; font-size: 15px; }
+.picker-h small { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.lead { display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: 0; border-top: 1px solid var(--line-soft); padding: 11px 16px; cursor: pointer; position: relative; }
+.lead:first-of-type { border-top: 0; }
+.lead::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 2px 2px 0; background: var(--accent); transform: scaleY(0); transition: transform .25s cubic-bezier(.16,1,.3,1); }
+.lead:hover { background: var(--sunk); }
+.lead[aria-checked="true"] { background: var(--accent-soft); }
+.lead[aria-checked="true"]::before { transform: scaleY(1); }
+.lead .em { font-family: var(--mono); font-size: 13.5px; overflow-wrap: anywhere; }
+.lead .route { grid-row: span 2; align-self: center; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.lead[aria-checked="true"] .route { color: var(--accent); }
+.lead .what { font-size: 13.5px; color: var(--muted); }
 
-section.block { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px 28px; margin: 22px 0; }
-section.block h2 { font-size: 22px; letter-spacing: -0.02em; margin: 0 0 6px; }
-.subhead { color: var(--ink2); margin: 0 0 18px; font-size: 15px; max-width: 76ch; }
+/* canvas */
+.stage { padding-bottom: 8px; }
+.scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background-color: var(--panel); background-image: radial-gradient(var(--dot) 1px, transparent 1.3px); background-size: 18px 18px; scrollbar-width: thin; }
+.canvas { position: relative; min-width: 1100px; margin: 0 auto; }
+.canvas svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.edge { fill: none; stroke: var(--line); stroke-width: 1.5; transition: stroke .3s, opacity .3s; }
+.edge.on { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 7 5; }
+.edge.dim { opacity: .45; }
+.elabel { font: 10.5px var(--mono); fill: var(--muted); paint-order: stroke; stroke: var(--panel); stroke-width: 4px; }
+.elabel.on { fill: var(--accent); }
+.node { position: absolute; width: 84px; min-height: 56px; padding: 6px 7px 7px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); box-shadow: var(--shadow); transition: opacity .35s, border-color .35s, background-color .35s, transform .35s cubic-bezier(.16,1,.3,1); }
+.node .t { display: block; font: 10px/1.3 var(--mono); color: var(--muted); margin-bottom: 3px; }
+.node .n { display: block; font-size: 11px; line-height: 1.25; font-weight: 600; }
+.node.off { opacity: .32; box-shadow: none; }
+.node.on { border-color: var(--accent-line); }
+.node.end { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-2px); }
+.node.end .t { color: var(--accent); }
+.node.fail { border: 1px dashed var(--accent); }
+.node.fail .t::after { content: " failed"; color: var(--accent); }
+.canvas-msg { padding: 48px 20px; text-align: center; color: var(--muted); }
+.canvas-msg .sk { display: flex; gap: 22px; justify-content: center; margin-bottom: 18px; }
+.canvas-msg .sk i { width: 96px; height: 58px; border-radius: var(--r); background: var(--sunk); animation: pulse 1.4s ease-in-out infinite; }
+.canvas-msg .sk i:nth-child(2) { animation-delay: .15s; } .canvas-msg .sk i:nth-child(3) { animation-delay: .3s; }
+@keyframes pulse { 50% { opacity: .45; } }
+@keyframes dash { to { stroke-dashoffset: -24; } }
+.edge.on { animation: dash 1.1s linear infinite; }
+.note { font-size: 13.5px; color: var(--muted); margin: 12px 0 0; }
 
-/* Scenario Picker */
-.scenarios { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 20px; }
-.sc-btn { text-align: left; font: inherit; background: var(--sub); border: 2px solid var(--line); border-radius: 12px; padding: 13px 15px; cursor: pointer; color: var(--ink); transition: all .15s; }
-.sc-btn:hover { border-color: var(--accent); }
-.sc-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 2px 10px rgba(37,99,235,.12); }
-.sc-btn .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-bottom: 6px; }
-.pill.ok { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-bd); }
-.pill.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-bd); }
-.pill.bad { background: var(--bad-bg); color: var(--bad); border: 1px solid var(--bad-bd); }
-.sc-btn b { display: block; font-size: 14.5px; }
-.sc-btn span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+/* result */
+.result { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; padding: 48px 0 24px; }
+.result h2 { font-size: 20px; margin-bottom: 14px; }
+.req { font: 12.5px/1.65 var(--mono); background: var(--sunk); border-radius: var(--r); padding: 14px 16px; margin: 0 0 22px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-2); }
+.req .k { color: var(--muted); }
+.trace { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+.trace li { position: relative; padding: 0 0 14px 34px; counter-increment: step; }
+.trace li::before { content: counter(step); position: absolute; left: 0; top: 1px; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line); font: 11px/20px var(--mono); text-align: center; color: var(--muted); background: var(--panel); }
+.trace li::after { content: ""; position: absolute; left: 11px; top: 25px; bottom: 2px; width: 1px; background: var(--line); }
+.trace li:last-child::after { display: none; }
+.trace li.end::before { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.trace b { display: block; font: 12.5px var(--mono); color: var(--muted); font-weight: 400; }
+.trace span { font-size: 15px; }
+.writes { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 30px; }
+.writes td { padding: 9px 0; vertical-align: top; border-top: 1px solid var(--line-soft); }
+.writes tr:first-child td { border-top: 0; }
+.writes td:first-child { font-family: var(--mono); font-size: 12.5px; color: var(--muted); padding-right: 18px; white-space: nowrap; }
+.writes .kept td { color: var(--muted); }
+.writes .tag { font: 11.5px var(--mono); color: var(--muted); margin-left: 8px; white-space: nowrap; }
+.writes .tag.new { color: var(--accent); }
+.empty { border: 1px dashed var(--line); border-radius: var(--r); padding: 16px 18px; color: var(--muted); font-size: 14.5px; }
+.msg { border-left: 3px solid var(--accent); padding: 4px 0 4px 16px; font-size: 14.5px; }
+.msg .ch { font: 12.5px var(--mono); color: var(--muted); margin-bottom: 6px; }
+.msg p { margin: 0 0 4px; overflow-wrap: anywhere; }
+.msg code { background: var(--sunk); padding: 1px 5px; border-radius: 4px; }
+.aside { font-size: 13.5px; color: var(--muted); margin: 10px 0 0; }
 
-/* Visual Pipeline Track */
-.pipeline { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-bottom: 20px; }
-.step { border-radius: 11px; padding: 11px 12px; border: 1.5px solid var(--line); background: var(--sub); position: relative; transition: all .2s; }
-.step small { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-.step b { display: block; font-size: 13px; line-height: 1.25; margin: 3px 0; }
-.step p { margin: 0; font-size: 12px; color: var(--ink2); line-height: 1.35; }
-.step.ok { background: var(--ok-bg); border-color: var(--ok-bd); }
-.step.ok small { color: var(--ok); }
-.step.warn { background: var(--warn-bg); border-color: var(--warn-bd); }
-.step.warn small { color: var(--warn); }
-.step.bad { background: var(--bad-bg); border-color: var(--bad-bd); }
-.step.bad small { color: var(--bad); }
-.step.skip { opacity: .42; border-style: dashed; }
+/* fields */
+section.band { padding-top: 88px; }
+.fields { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 56px; margin-top: 36px; align-items: start; }
+.rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 22px; }
+.rules b { display: block; font-weight: 600; margin-bottom: 2px; }
+.rules p { margin: 0; color: var(--muted); font-size: 15px; }
+.matrix-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); }
+.matrix { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 620px; }
+.matrix th, .matrix td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line-soft); }
+.matrix thead th { font-weight: 600; font-size: 12.5px; vertical-align: bottom; color: var(--ink-2); }
+.matrix tbody th { font: 400 12.5px var(--mono); color: var(--ink); white-space: nowrap; }
+.matrix tbody tr:last-child th, .matrix tbody tr:last-child td { border-bottom: 0; }
+.matrix td { font: 12px var(--mono); color: var(--muted); }
+.matrix td.w { color: var(--ink); }
+.matrix td.once { color: var(--accent); }
+.matrix tr.never th { color: var(--muted); }
 
-/* Realistic Output Cards */
-.outputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px; }
-.mock { border-radius: 14px; border: 1px solid var(--line); overflow: hidden; display: flex; flex-direction: column; }
-.mock-head { padding: 11px 16px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: var(--sub); }
-.mock-head .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 7px; }
-.mock-body { padding: 16px; background: var(--card); flex: 1; }
+/* cases */
+.cases { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 1px; margin-top: 36px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.group { background: var(--panel); padding: 22px 24px 24px; }
+.group .count { font: 400 clamp(40px, 4vw, 56px)/1 var(--mono); letter-spacing: -0.04em; }
+.group h3 { font-size: 15px; margin: 10px 0 2px; }
+.group .rt { font: 12px var(--mono); color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+.chip { font: 13px var(--sans); color: var(--ink); background: var(--sunk); border: 1px solid transparent; border-radius: 999px; padding: 4px 11px; cursor: pointer; }
+.chip:hover { border-color: var(--line); }
+.chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-line); color: var(--ink); }
+.case-detail { margin-top: 16px; min-height: 3.2em; font-size: 15px; color: var(--ink-2); }
+.case-detail .q { color: var(--ink); }
+.case-detail .m { font: 12.5px var(--mono); color: var(--muted); display: block; margin-top: 4px; }
 
-.input-box { background: var(--sub); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 13.5px; align-items: baseline; }
-.input-box strong { color: var(--muted); font-size: 12px; text-transform: uppercase; margin-right: 5px; }
+/* failures */
+.fails { margin-top: 30px; border-top: 1px solid var(--line); }
+.fail { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 40px; padding: 22px 0; border-bottom: 1px solid var(--line); }
+.fail h3 { font-size: 18px; letter-spacing: -0.015em; }
+.fail h3 small { display: block; font: 12.5px var(--mono); color: var(--muted); letter-spacing: 0; margin-top: 4px; font-weight: 400; }
+.fail p { margin: 0; color: var(--ink-2); }
 
-.kv { display: grid; gap: 9px; font-size: 13.5px; }
-.kv-row { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 7px; border-bottom: 1px solid var(--line); align-items: center; }
-.kv-row:last-child { border-bottom: 0; padding-bottom: 0; }
-.kv-row span { color: var(--muted); font-size: 12.5px; }
-.kv-row strong { text-align: right; font-weight: 600; }
+/* setup */
+.setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; margin-top: 36px; }
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
+.steps b { font-size: 17px; display: block; }
+.steps p { margin: 2px 0 0; color: var(--muted); font-size: 15px; }
+.files { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); }
+.files li + li { border-top: 1px solid var(--line-soft); }
+.files a { display: grid; grid-template-columns: 1fr auto; gap: 2px 16px; padding: 13px 16px; text-decoration: none; }
+.files a:hover { background: var(--sunk); color: inherit; }
+.files .p { font: 13px var(--mono); overflow-wrap: anywhere; }
+.files .d { grid-column: 1; font-size: 14px; color: var(--muted); }
+.files .go { grid-row: span 2; align-self: center; font: 13px var(--mono); color: var(--accent); }
 
-.slack-card { background: var(--slack-bg); color: var(--slack-ink); padding: 16px; flex: 1; font-size: 13.5px; }
-.slack-meta { font-size: 12px; color: var(--slack-muted); margin-bottom: 8px; }
-.slack-msg { border-left: 3px solid #38bdf8; padding-left: 12px; display: grid; gap: 6px; }
-.slack-msg.quiet { border-left-color: #64748b; color: var(--slack-muted); }
-.slack-msg.warn { border-left-color: #fbbf24; }
-.slack-note { font-size: 11.5px; color: #fbbf24; margin-top: 6px; font-weight: 600; }
+footer { margin-top: 96px; border-top: 1px solid var(--line); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; padding-top: 26px; padding-bottom: 40px; font-size: 14px; color: var(--muted); }
+footer .who { color: var(--ink); font-weight: 600; margin-right: auto; }
+footer a { color: var(--ink-2); text-decoration: none; }
+footer a:hover { color: var(--accent); }
 
-.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
-.rule-card { background: var(--sub); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
-.rule-card h3 { margin: 6px 0 6px; font-size: 15.5px; }
-.rule-card p { margin: 0; font-size: 14px; color: var(--ink2); }
-
-.scroll { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
-th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--line); }
-thead th { font-size: 12px; color: var(--muted); font-weight: 600; }
-
-footer { border-top: 1px solid var(--line); padding: 22px 0 40px; color: var(--muted); font-size: 13.5px; }
-@media (max-width: 900px) { .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 600px) { .wrap { padding: 0 16px; } section.block { padding: 18px 16px; } .pipeline { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) {
+  .hero { grid-template-columns: minmax(0, 1fr); gap: 36px; padding-top: 44px; }
+  .result, .fields, .setup { grid-template-columns: minmax(0, 1fr); gap: 36px; }
+  .nav-links .proj { display: none; }
+}
+@media (max-width: 720px) {
+  .wrap { padding-left: 16px; padding-right: 16px; }
+  .cases { grid-template-columns: minmax(0, 1fr); }
+  .writes td:first-child { white-space: normal; overflow-wrap: anywhere; width: 44%; padding-right: 12px; }
+  .writes .tag { display: block; margin: 2px 0 0; white-space: normal; }
+  .fail { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  section.band { padding-top: 64px; }
+  .lede { font-size: 17px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .01ms !important; animation: none !important; }
+}
 </style>
 </head>
 <body>
 <header class="nav"><div class="wrap">
-  <a class="brand" href="#top">AI Inbound Lead Router</a>
-  <nav class="nav-links">
-    <a href="https://github.com/errer441122">Portfolio Home</a>
-    <a href="https://errer441122.github.io/ai-visibility-audit-geo/">1. GEO Audit</a>
-    <a href="https://errer441122.github.io/ecommerce-cx-analytics/">3. CX Promo Guard</a>
-    <a href="https://errer441122.github.io/lifecycle-automation-lab/">4. CRM QA</a>
-    <a href="https://github.com/errer441122/ai-inbound-lead-router">GitHub Repo &rarr;</a>
+  <a class="brand" href="#top">lead<b>/</b>router</a>
+  <nav class="nav-links" aria-label="Projects">
+    <a class="proj" href="https://errer441122.github.io/ai-visibility-audit-geo/">GEO audit</a>
+    <a class="proj" href="https://errer441122.github.io/ecommerce-cx-analytics/">CX promo guard</a>
+    <a class="proj" href="https://errer441122.github.io/lifecycle-automation-lab/">CRM pre-send QA</a>
+    <a href="https://github.com/errer441122/ai-inbound-lead-router">GitHub repo</a>
   </nav>
 </div></header>
 
-<main class="wrap" id="top">
-  <section class="hero">
-    <p class="kicker">Visual n8n Workflow &middot; HubSpot Operations &middot; AI Lead Qualification</p>
-    <h1>Turn raw inbound form leads into clean, scored HubSpot contacts in under 10 seconds.</h1>
-    <p class="lead">Click any of the 4 real-world test scenarios below to see exactly how the workflow filters noise, protects Sales fields, checks AI confidence, and routes the right leads to the right place.</p>
-    <div class="cta-row">
-      <a class="btn" href="https://raw.githubusercontent.com/errer441122/ai-inbound-lead-router/main/workflows/ai-inbound-lead-router.n8n.json" download="ai-inbound-lead-router.n8n.json">Download n8n Blueprint (.json)</a>
-      <a class="btn ghost" href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/sop-inbound-lead-routing.md">Read 10-Min Setup SOP</a>
-      <a class="btn ghost" href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/prompts/icp-scoring-prompt.md">View AI Prompt &amp; Rubric</a>
+<main id="top">
+  <section class="wrap hero">
+    <div>
+      <p class="eyebrow">inbound lead routing</p>
+      <h1>Leads scored and routed without breaking HubSpot.</h1>
+      <p class="lede">A 15-node n8n workflow: filters free emails before any AI spend, locks first-touch UTMs, holds uncertain leads for review.</p>
+      <div class="ctas">
+        <a class="btn" href="#walkthrough">Run a lead through it</a>
+        <a class="btn ghost" id="dl" href="https://raw.githubusercontent.com/errer441122/ai-inbound-lead-router/main/workflows/ai-inbound-lead-router.n8n.json" download="ai-inbound-lead-router.n8n.json">Download the workflow</a>
+      </div>
     </div>
-
-    <div class="compare">
-      <div class="cmp before">
-        <h2>Without This System</h2>
-        <ul>
-          <li>High-fit leads wait hours mixed with <code>@gmail.com</code> spam and students.</li>
-          <li>Repeat form fills overwrite original <strong>First-Touch UTMs</strong> and break attribution.</li>
-          <li>Naive AI automations guess when a website is blocked or email prospects unreviewed.</li>
-        </ul>
-      </div>
-      <div class="cmp after">
-        <h2>With This n8n + HubSpot System</h2>
-        <ul>
-          <li>Free personal emails are filtered at Step 2 (&euro;0 spent on AI/enrichment).</li>
-          <li><strong>Field Ownership Matrix</strong> locks First-Touch UTMs &amp; Sales-owned deal stages.</li>
-          <li>AI confidence <strong>&lt;80%</strong> routes to human review; Sales openers appear in Slack only.</li>
-        </ul>
-      </div>
+    <div class="picker" id="walkthrough">
+      <div class="picker-h"><span id="pick-label">Pick a lead</span><small>5 examples</small></div>
+      <div id="leads" role="radiogroup" aria-labelledby="pick-label"></div>
     </div>
   </section>
 
-  <!-- INTERACTIVE SIMULATOR -->
-  <section class="block" id="simulator">
-    <h2>Interactive Simulator: Watch 4 Different Leads Flow Through the System</h2>
-    <p class="subhead">Choose a lead scenario below. Watch which stages execute, which stages stop early, and inspect the exact <strong>HubSpot Contact Card</strong> and <strong>Slack Notification</strong> produced.</p>
-
-    <div class="scenarios" id="scenarios" role="group" aria-label="Lead test scenarios"></div>
-
-    <div class="input-box" id="input-box"></div>
-    <div class="pipeline" id="pipeline"></div>
-    <div class="outputs" id="outputs"></div>
+  <section class="wrap stage" aria-label="The workflow">
+    <div class="scroller" id="scroller">
+      <div class="canvas" id="canvas">
+        <div class="canvas-msg" id="canvas-msg"><div class="sk" aria-hidden="true"><i></i><i></i><i></i></div>Loading the workflow file...</div>
+      </div>
+    </div>
+    <p class="note">Drawn from <a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><code>workflows/ai-inbound-lead-router.n8n.json</code></a>. The leads, AI scores and texts are examples. The path, the fields and the Slack text come from the file.</p>
   </section>
 
-  <!-- FIELD OWNERSHIP RULES -->
-  <section class="block" id="rules">
-    <h2>How the CRM Stays Clean (Field Ownership Rules)</h2>
-    <p class="subhead">Automations break CRMs when they blindly overwrite human work. Every HubSpot update follows three strict ownership rules:</p>
-    <div class="grid-3">
-      <div class="rule-card">
-        <span class="pill ok">Fill If Blank Only</span>
-        <h3>First-Touch UTMs Locked Forever</h3>
-        <p>When an existing lead returns via a newsletter, <code>first_touch_utm_campaign</code> is preserved so you never lose the original acquisition campaign.</p>
-      </div>
-      <div class="rule-card">
-        <span class="pill warn">Always Refresh</span>
-        <h3>Last-Touch UTM &amp; AI Summary</h3>
-        <p><code>last_touch_utm_campaign</code>, <code>ai_icp_reasoning</code>, and the suggested opener refresh on every new inquiry so reps always see fresh context.</p>
-      </div>
-      <div class="rule-card">
-        <span class="pill bad">Never Overwrite</span>
-        <h3>Sales Stages &amp; Rep Ownership</h3>
-        <p>If a contact is already an SQL, Opportunity, or Customer with an assigned rep, the workflow never downgrades them back to Lead or steals ownership.</p>
-      </div>
+  <section class="wrap result" aria-live="polite">
+    <div>
+      <h2>What happened</h2>
+      <pre class="req" id="req"></pre>
+      <ol class="trace" id="trace"></ol>
+    </div>
+    <div>
+      <h2>Written to HubSpot</h2>
+      <div id="writes"></div>
+      <h2>Posted to Slack</h2>
+      <div id="slack"></div>
     </div>
   </section>
 
-  <!-- 30 REAL COMPANIES BENCHMARK -->
-  <section class="block" id="benchmark">
-    <h2>Validated Across 30 Concrete Cases (25 Real European Companies + 5 Edge Cases)</h2>
-    <p class="subhead">All four routing paths were validated against real European D2C and B2B SaaS public domains plus 5 explicit failure cases. Estimated LLM API cost: <strong>~&euro;0.001&ndash;&euro;0.002 per qualified corporate lead</strong> (~&euro;1&ndash;2 per 1,000 leads).</p>
-    <div class="scroll">
-      <table>
-        <thead><tr><th>Outcome Path</th><th>Cases</th><th>Real Companies / Inputs in Benchmark</th><th>Business Result</th></tr></thead>
-        <tbody>
-          <tr><td><span class="pill ok">Tier 1 &rarr; Sales Fast-Track</span></td><td><strong>15</strong></td><td>Velasca, Cortilia, Tannico, Gymshark, Huel, Factorial, Qonto, Brevo, Typeform, Holded, Pipedrive, Fatture in Cloud, Pennylane, Scalapay, Casavo</td><td>Enriched HubSpot contact + instant Slack alert with factual hook</td></tr>
-          <tr><td><span class="pill warn">Tier 2 &rarr; Marketing Nurture</span></td><td><strong>10</strong></td><td>Satispay, Bending Spoons, Subito, Vinted, Too Good To Go, Klarna, N26, Revolut, Wise, Zalando</td><td>Logged cleanly as MQL in nurture; Sales Slack stays focused</td></tr>
-          <tr><td><span class="pill bad">Tier 3 &rarr; Free Email Filter</span></td><td><strong>3</strong></td><td><code>gmail.com</code>, <code>libero.it</code>, <code>outlook.com</code></td><td>Bypassed before enrichment &amp; LLM (&euro;0 API spend)</td></tr>
-          <tr><td><span class="pill warn">Needs Human Review</span></td><td><strong>2</strong></td><td>Bot-blocked website (HTTP 403) &middot; Ambiguous 2-word message</td><td>Safely held in HubSpot Ops review queue; zero guesswork</td></tr>
-        </tbody>
-      </table>
+  <section class="wrap band" id="fields">
+    <h2>Which node may change which field</h2>
+    <p class="sub2">Read from the workflow file. A returning lead never loses its first campaign, and the fields Sales owns are never written.</p>
+    <div class="fields">
+      <ul class="rules">
+        <li><b>First touch is written once</b><p>The Tier 1 node keeps the value HubSpot already has and only fills it when it is blank.</p></li>
+        <li><b>Last touch refreshes every time</b><p>Every route updates the latest campaign, so reps see what brought the lead back.</p></li>
+        <li><b>Sales fields stay with Sales</b><p>No node writes the lifecycle stage or the contact owner.</p></li>
+      </ul>
+      <div class="matrix-wrap"><table class="matrix" id="matrix"><tbody><tr><td>Loading the workflow file...</td></tr></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="wrap band" id="cases">
+    <p class="eyebrow">data/real-companies-benchmark.csv</p>
+    <h2>30 test cases, each with the route it should take</h2>
+    <p class="sub2">25 real European companies and 5 edge cases. It is the test matrix for the scoring rubric, not production traffic. Pick a company to see its test input.</p>
+    <div class="cases" id="case-groups"><div class="group">Loading the test cases...</div></div>
+    <p class="note">Estimated model cost: about &euro;0.001-0.002 per corporate lead at gpt-4o-mini or gemini-2.5-flash list prices. Free emails cost nothing: they never reach the model.</p>
+  </section>
+
+  <section class="wrap band" id="failures">
+    <h2>When something goes wrong</h2>
+    <div class="fails">
+      <div class="fail"><h3>A personal email arrives<small>gmail.com, libero.it, outlook.com, proton.me...</small></h3><p>The corporate-email check stops it before the website fetch and the AI call. The contact is still saved, for self-serve nurture.</p></div>
+      <div class="fail"><h3>The website blocks the fetch<small>HTTP 403 or 8-second timeout</small></h3><p>The request continues on error, so the lead is not lost. Without page text the prompt asks for a score under 75, and the lead goes to human review.</p></div>
+      <div class="fail"><h3>The AI call fails<small>rate limit or outage at the model provider</small></h3><p>This node also continues on error. The score reads as 0, so the lead lands in the review list instead of being routed on a guess.</p></div>
+      <div class="fail"><h3>HubSpot or Slack returns an error<small>for example 429, too many requests</small></h3><p>The run fails and the Error Trigger posts the failed node and the error to <code>#martech-alerts</code>. Ops replays the run from n8n's execution history.</p></div>
+      <div class="fail"><h3>The AI writes an opener for Sales<small>ai_personalized_hook</small></h3><p>It is posted in Slack for a rep to check and saved on the contact. Nothing is emailed to the lead automatically.</p></div>
+    </div>
+  </section>
+
+  <section class="wrap band" id="setup">
+    <h2>Set it up in about ten minutes</h2>
+    <div class="setup">
+      <ol class="steps">
+        <li><b>Import</b><p>In n8n, Workflows, Import from File, and pick the workflow JSON.</p></li>
+        <li><b>Connect</b><p>A HubSpot private app token, an OpenAI or Gemini key and a Slack bot for <code>#inbound-tier1-leads</code> and <code>#martech-alerts</code>.</p></li>
+        <li><b>Test</b><p>Point a form webhook at <code>/inbound-lead-router</code> with hidden UTM fields, send one test lead, check the contact and the alert.</p></li>
+      </ol>
+      <ul class="files">
+        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><span class="p">workflows/ai-inbound-lead-router.n8n.json</span><span class="go">open</span><span class="d">The 15-node workflow, ready to import</span></a></li>
+        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/prompts/icp-scoring-prompt.md"><span class="p">prompts/icp-scoring-prompt.md</span><span class="go">open</span><span class="d">ICP rubric, system prompt and JSON contract</span></a></li>
+        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/field-ownership-matrix.md"><span class="p">docs/field-ownership-matrix.md</span><span class="go">open</span><span class="d">Overwrite rules for every HubSpot property</span></a></li>
+        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/sop-inbound-lead-routing.md"><span class="p">docs/sop-inbound-lead-routing.md</span><span class="go">open</span><span class="d">Setup, daily review and incident playbook</span></a></li>
+        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/data/real-companies-benchmark.csv"><span class="p">data/real-companies-benchmark.csv</span><span class="go">open</span><span class="d">The 30 test cases and their expected routes</span></a></li>
+      </ul>
     </div>
   </section>
 </main>
 
 <footer><div class="wrap">
-  <p>Visual n8n automation blueprint, HubSpot Field Ownership Matrix, and Operations SOP &mdash; <a href="https://github.com/errer441122/ai-inbound-lead-router">inspect full repository on GitHub</a>.</p>
+  <span class="who">Riccardo Capanna</span>
+  <a href="https://errer441122.github.io/ai-visibility-audit-geo/">GEO audit</a>
+  <a href="https://errer441122.github.io/ecommerce-cx-analytics/">CX promo guard</a>
+  <a href="https://errer441122.github.io/lifecycle-automation-lab/">CRM pre-send QA</a>
+  <a href="https://github.com/errer441122">GitHub</a>
+  <a href="https://www.linkedin.com/in/riccardo-capanna-039a43415/">LinkedIn</a>
 </div></footer>
 
 <script>
-const CASES = [
+const BASE = location.hostname.endsWith("github.io")
+  ? "https://raw.githubusercontent.com/errer441122/ai-inbound-lead-router/main/"
+  : "../";
+
+// Example leads. Keywords pick nodes out of the workflow file by name.
+const LEADS = [
   {
-    id: "tier1",
-    badge: "Tier 1 · Fast-Track",
-    badgeCls: "ok",
-    title: "Velasca (Italian D2C)",
-    subtitle: "High-fit corporate lead -> Slack Sales Alert",
-    input: { email: "growth@velasca.com", utm: "linkedin / eu_crm_audit_q2", msg: "\"Looking to restructure Klaviyo win-back and VIP discount exclusion flows.\"" },
-    steps: [
-      { k: "1. Intake", t: "Form + UTMs", d: "Normalized domain velasca.com", s: "ok" },
-      { k: "2. Email Gate", t: "Corporate OK", d: "Not a free consumer domain", s: "ok" },
-      { k: "3. HubSpot", t: "Duplicate Check", d: "New contact -> First-Touch unlocked", s: "ok" },
-      { k: "4. Website", t: "Public Context", d: "Fetched velasca.com homepage", s: "ok" },
-      { k: "5. AI Gate", t: "Confidence 92%", d: "Above 80% threshold -> Tier 1", s: "ok" },
-      { k: "6. Action", t: "CRM + Slack Alert", d: "Sales notified in <10 seconds", s: "ok" }
-    ],
-    hubspot: [
-      ["Contact", "growth@velasca.com"],
-      ["ICP Tier", "Tier 1 (High Fit)"],
-      ["Routing Status", "sales_fast_track"],
-      ["AI Confidence", "92 / 100"],
-      ["First-Touch UTM", "eu_crm_audit_q2 (Locked)"],
-      ["Last-Touch UTM", "eu_crm_audit_q2"],
-      ["AI Reasoning", "Italian D2C footwear brand with clear repeat-purchase & Klaviyo VIP margin need."]
-    ],
-    slackChannel: "#inbound-tier1-leads",
-    slackType: "active",
-    slackTitle: "Tier 1 Inbound Lead — velasca.com",
-    slackBody: [
-      "Contact: growth@velasca.com · Source: linkedin / eu_crm_audit_q2",
-      "Why Tier 1: Italian D2C brand seeking Klaviyo win-back & VIP discount guardrails.",
-      "Suggested opener: \"Noticed Velasca's direct-to-consumer Italian footwear model — separating full-price repeat buyers from win-back offers is usually the fastest margin lift in Klaviyo.\""
-    ],
-    slackNote: "Human-in-the-loop: suggested opener is NEVER emailed automatically."
+    email: "growth@velasca.com", route: "sales", what: "Tier 1: alert for a rep",
+    form: { utm_source: "linkedin", utm_campaign: "eu_crm_audit_q2", message: "Looking to restructure Klaviyo win-back and VIP discount exclusion flows." },
+    domain: "velasca.com",
+    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Confidence", "Switch", "Upsert Tier 1", "Tier 1 Sales Alert"],
+    trace: ["Form arrives with email, message and UTMs.", "Domain velasca.com, UTMs lowercased.", "Not a free-mail domain: continue.", "No contact yet, so the first touch can be written.", "velasca.com answers; its text goes to the model.", "gpt-4o-mini, temperature 0.1, JSON only: Tier 1, confidence 92.", "92 is at least 80: route automatically.", "Tier 1 branch.", "Six properties written.", "Alert posted for a rep to follow up."],
+    values: { icp_tier: "Tier 1", routing_status: "sales_fast_track", ai_icp_reasoning: "Italian D2C footwear brand with a repeat-purchase and VIP-margin need in Klaviyo.", ai_personalized_hook: "Keeping full-price repeat buyers out of win-back offers is usually the quickest margin fix in Klaviyo.", first_touch_utm_campaign: ["eu_crm_audit_q2", "new contact: written once"], last_touch_utm_campaign: "eu_crm_audit_q2" },
   },
   {
-    id: "tier2",
-    badge: "Tier 2 · Nurture",
-    badgeCls: "warn",
-    title: "Satispay (Exploratory)",
-    subtitle: "Valid company, early research -> Marketing Nurture",
-    input: { email: "research@satispay.com", utm: "organic / blog_geo_guide", msg: "\"Downloading your benchmark on AI search visibility in fintech.\"" },
-    steps: [
-      { k: "1. Intake", t: "Form + UTMs", d: "Normalized domain satispay.com", s: "ok" },
-      { k: "2. Email Gate", t: "Corporate OK", d: "Valid corporate domain", s: "ok" },
-      { k: "3. HubSpot", t: "Duplicate Check", d: "Existing contact -> First-Touch kept!", s: "ok" },
-      { k: "4. Website", t: "Public Context", d: "Fetched satispay.com homepage", s: "ok" },
-      { k: "5. AI Gate", t: "Confidence 88%", d: "Above 80% threshold -> Tier 2", s: "warn" },
-      { k: "6. Action", t: "MQL Nurture", d: "Enrolled in nurture; no Sales ping", s: "warn" }
-    ],
-    hubspot: [
-      ["Contact", "research@satispay.com (Existing)"],
-      ["ICP Tier", "Tier 2 (Medium Fit)"],
-      ["Routing Status", "marketing_nurture"],
-      ["AI Confidence", "88 / 100"],
-      ["First-Touch UTM", "meta_webinar_q1 (Preserved!)"],
-      ["Last-Touch UTM", "blog_geo_guide (Updated)"],
-      ["AI Reasoning", "Real enterprise fintech, but top-of-funnel research download without immediate buying intent."]
-    ],
-    slackChannel: "#inbound-tier1-leads",
-    slackType: "quiet",
-    slackTitle: "No Slack notification sent",
-    slackBody: [
-      "Tier 2 exploratory leads go cleanly into HubSpot Marketing Nurture without interrupting Account Executives.",
-      "Existing First-Touch UTM (meta_webinar_q1) stayed locked while Last-Touch UTM refreshed to blog_geo_guide."
-    ],
-    slackNote: ""
+    email: "research@satispay.com", route: "nurture", what: "Tier 2: first touch kept",
+    form: { utm_source: "organic", utm_campaign: "blog_geo_guide", message: "Downloading your benchmark on AI search visibility in fintech." },
+    domain: "satispay.com",
+    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Confidence", "Switch", "Upsert Tier 2/3"],
+    trace: ["Form arrives with email, message and UTMs.", "Domain satispay.com.", "Corporate domain: continue.", "Existing contact, first touch meta_webinar_q1 on record.", "satispay.com answers.", "Tier 2, confidence 88: a research download, no buying intent yet.", "88 is at least 80: route automatically.", "Tier 2 branch.", "Four properties written. First touch is not in this node."],
+    values: { icp_tier: "Tier 2", routing_status: "marketing_nurture", ai_icp_reasoning: "Real fintech company; a top-of-funnel research download without buying intent.", last_touch_utm_campaign: "blog_geo_guide" },
+    kept: [["first_touch_utm_campaign", "meta_webinar_q1"]],
+    quiet: "Nothing posted. Nurture leads go to marketing without pinging Sales.",
   },
   {
-    id: "free",
-    badge: "Blocked · €0 AI Spend",
-    badgeCls: "bad",
-    title: "mario.rossi@gmail.com",
-    subtitle: "Personal free email -> Filtered before enrichment",
-    input: { email: "mario.rossi@gmail.com", utm: "meta / lead_form_broad", msg: "\"Hi, can you send me pricing for a small project?\"" },
-    steps: [
-      { k: "1. Intake", t: "Form + UTMs", d: "Extracted domain gmail.com", s: "ok" },
-      { k: "2. Email Gate", t: "STOPPED HERE", d: "Free personal domain detected", s: "bad" },
-      { k: "3. HubSpot", t: "Skipped", d: "No deep lookup needed", s: "skip" },
-      { k: "4. Website", t: "Skipped", d: "0 HTTP calls made", s: "skip" },
-      { k: "5. AI Gate", t: "Skipped (€0)", d: "0 LLM tokens spent", s: "skip" },
-      { k: "6. Action", t: "Self-Serve Track", d: "Tagged Tier 3 - Free Email", s: "bad" }
-    ],
-    hubspot: [
-      ["Contact", "mario.rossi@gmail.com"],
-      ["ICP Tier", "Tier 3 - Free Email"],
-      ["Routing Status", "self_serve_nurture"],
-      ["AI Confidence", "Not called (€0 spent)"],
-      ["Last-Touch UTM", "lead_form_broad"],
-      ["Why Filtered", "Blocks consumer webmail domains from burning enrichment/LLM credits or creating Sales noise."]
-    ],
-    slackChannel: "#inbound-tier1-leads",
-    slackType: "quiet",
-    slackTitle: "No Slack notification sent",
-    slackBody: [
-      "Personal email routed straight to self-serve resources in HubSpot.",
-      "AI cost saved: 100% (0 API calls executed)."
-    ],
-    slackNote: ""
+    email: "name@gmail.com", route: "self-serve", what: "Free email: no AI call",
+    form: { utm_source: "meta", utm_campaign: "lead_form_broad", message: "Hi, can you send me pricing for a small project?" },
+    domain: "gmail.com",
+    path: ["Webhook", "Normalize", "Corporate Email", "Free Email"],
+    trace: ["Form arrives with email, message and UTMs.", "Domain gmail.com.", "gmail.com is on the free-mail list: stop here.", "Four properties written. No website fetch, no AI call."],
+    values: { last_touch_utm_source: "meta", last_touch_utm_campaign: "lead_form_broad" },
+    quiet: "Nothing posted. Personal emails never reach Sales or the model.",
   },
   {
-    id: "review",
-    badge: "Human Review Gate",
-    badgeCls: "warn",
-    title: "Blocked Site / Vague Lead",
-    subtitle: "HTTP 403 or AI Confidence 62% -> Safe Ops Queue",
-    input: { email: "info@stealth-brand.eu", utm: "google / cpc_martech", msg: "\"Info please\"" },
-    steps: [
-      { k: "1. Intake", t: "Form + UTMs", d: "Normalized stealth-brand.eu", s: "ok" },
-      { k: "2. Email Gate", t: "Corporate OK", d: "Corporate domain passed", s: "ok" },
-      { k: "3. HubSpot", t: "Duplicate Check", d: "New contact", s: "ok" },
-      { k: "4. Website", t: "HTTP 403 Caught", d: "continueOnFail kept lead alive!", s: "warn" },
-      { k: "5. AI Gate", t: "Confidence 62%", d: "Below 80% -> Blocked from auto-route", s: "warn" },
-      { k: "6. Action", t: "Ops Review Queue", d: "Flagged needs_human_review", s: "warn" }
-    ],
-    hubspot: [
-      ["Contact", "info@stealth-brand.eu"],
-      ["ICP Tier", "(Held for human check)"],
-      ["Routing Status", "needs_human_review"],
-      ["AI Confidence", "62 / 100 (Below 80% gate)"],
-      ["Risk Flags", "insufficient_website_context, vague_message"],
-      ["Why Held", "Site blocked scraping and message had 2 words — workflow refuses to guess or spam Sales."]
-    ],
-    slackChannel: "#martech-ops-review",
-    slackType: "warn",
-    slackTitle: "Manual Review Required — stealth-brand.eu",
-    slackBody: [
-      "Contact: info@stealth-brand.eu · AI Confidence: 62% (<80% threshold)",
-      "Reason: Website returned HTTP 403 and message ('Info please') lacks buying context.",
-      "Action: Review in HubSpot Active List 'needs_human_review' (takes 30 seconds)."
-    ],
-    slackNote: "Zero lost leads, zero hallucinated outreach."
-  }
+    email: "info@stealth-co.example", route: "review", what: "Blocked site: human review",
+    form: { utm_source: "google", utm_campaign: "cpc_martech", message: "Info please" },
+    domain: "stealth-co.example",
+    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Confidence", "Manual Review"],
+    trace: ["Form arrives with email, message and UTMs.", "Domain stealth-co.example.", "Corporate domain: continue.", "New contact.", "HTTP 403. The node continues on error, so the lead is not lost.", "No page text and a two-word message: confidence 62.", "62 is under 80: no automatic routing.", "Three properties written, for the daily review."],
+    values: { ai_confidence_score: "62", last_touch_utm_campaign: "cpc_martech" },
+    quiet: "Nothing posted. The lead waits in the HubSpot list needs_human_review, which Ops clears every morning.",
+  },
+  {
+    email: "growth@velasca.com", route: "alert", what: "HubSpot returns 429",
+    form: { utm_source: "linkedin", utm_campaign: "eu_crm_audit_q2", message: "Looking to restructure Klaviyo win-back and VIP discount exclusion flows." },
+    domain: "velasca.com",
+    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Confidence", "Switch", "Upsert Tier 1", "Error Trigger", "martech-alerts"],
+    fail: "Upsert Tier 1",
+    trace: ["Same Velasca lead.", "Domain velasca.com.", "Corporate domain: continue.", "No contact yet.", "velasca.com answers.", "Tier 1, confidence 92.", "Route automatically.", "Tier 1 branch.", "HubSpot answers 429. This node does not continue on error, so the run fails.", "The Error Trigger catches the failed run.", "Ops is told which node failed and why."],
+    values: {},
+    none: "Nothing written: the run stopped at the upsert. Ops replays it from n8n's execution history once HubSpot recovers.",
+    error: "Request failed with status code 429",
+  },
 ];
 
-const scEl = document.getElementById("scenarios");
-const inEl = document.getElementById("input-box");
-const pipeEl = document.getElementById("pipeline");
-const outEl = document.getElementById("outputs");
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const clean = (s) => s.replace(/\s*[\u2013\u2014]\s*/g, ": ");
+let WF = null, WF_TEXT = null, current = 0;
 
-function render(idx) {
-  const c = CASES[idx];
-  [...scEl.children].forEach((b, i) => b.setAttribute("aria-pressed", String(i === idx)));
-  inEl.innerHTML = `
-    <div><strong>Incoming Email</strong> ${c.input.email}</div>
-    <div><strong>Captured UTM</strong> <code>${c.input.utm}</code></div>
-    <div><strong>Form Message</strong> ${c.input.msg}</div>
-  `;
-  pipeEl.innerHTML = c.steps.map(st => `
-    <div class="step ${st.s}">
-      <small>${st.k}</small>
-      <b>${st.t}</b>
-      <p>${st.d}</p>
-    </div>
-  `).join("");
+// ---- lead picker (radio group with arrow keys) ----
+const leadsEl = $("#leads");
+LEADS.forEach((l, i) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "lead"; b.setAttribute("role", "radio");
+  b.innerHTML = `<span class="em">${esc(l.email)}</span><span class="route">${esc(l.route)}</span><span class="what">${esc(l.what)}</span>`;
+  b.addEventListener("click", () => select(i));
+  b.addEventListener("keydown", (e) => {
+    const k = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (!k) return;
+    e.preventDefault();
+    const n = (i + k + LEADS.length) % LEADS.length;
+    select(n); leadsEl.children[n].focus();
+  });
+  leadsEl.append(b);
+});
 
-  const hsRows = c.hubspot.map(([k, v]) => `<div class="kv-row"><span>${k}</span><strong>${v}</strong></div>`).join("");
-  const slLines = c.slackBody.map(l => `<div>${l}</div>`).join("");
-  outEl.innerHTML = `
-    <div class="mock">
-      <div class="mock-head"><span><i class="dot" style="background:var(--hs)"></i>HubSpot Contact Record</span><span>Upserted cleanly</span></div>
-      <div class="mock-body"><div class="kv">${hsRows}</div></div>
-    </div>
-    <div class="mock">
-      <div class="mock-head"><span><i class="dot" style="background:#38bdf8"></i>Slack · ${c.slackChannel}</span><span>${c.slackType === "quiet" ? "Zero noise" : "Real-time alert"}</span></div>
-      <div class="slack-card">
-        <div class="slack-meta">n8n Lead Router &middot; just now</div>
-        <div class="slack-msg ${c.slackType}">
-          <strong>${c.slackTitle}</strong>
-          ${slLines}
-        </div>
-        ${c.slackNote ? `<div class="slack-note">${c.slackNote}</div>` : ""}
-      </div>
-    </div>
-  `;
+function find(keyword) {
+  if (!WF) return null;
+  const k = keyword.toLowerCase();
+  return WF.nodes.find((n) => n.name.toLowerCase().includes(k)) || null;
 }
 
-CASES.forEach((c, i) => {
-  const b = document.createElement("button");
-  b.type = "button"; b.className = "sc-btn";
-  b.innerHTML = `<span class="pill ${c.badgeCls}">${c.badge}</span><b>${c.title}</b><span>${c.subtitle}</span>`;
-  b.addEventListener("click", () => render(i));
-  scEl.append(b);
+function select(i) {
+  current = i;
+  [...leadsEl.children].forEach((b, j) => {
+    b.setAttribute("aria-checked", String(j === i));
+    b.tabIndex = j === i ? 0 : -1;
+  });
+  const l = LEADS[i];
+  $("#req").innerHTML = `<span class="k">POST /inbound-lead-router</span>\n` + esc(JSON.stringify({ email: l.email, ...l.form }, null, 2));
+  $("#trace").innerHTML = l.path.map((k, j) => {
+    const n = find(k);
+    const end = j === l.path.length - 1 ? ' class="end"' : "";
+    return `<li${end}><b>${esc(n ? clean(n.name) : k)}</b><span>${esc(l.trace[j] || "")}</span></li>`;
+  }).join("");
+  renderWrites(l);
+  renderSlack(l);
+  paint(l);
+}
+
+function renderWrites(l) {
+  const box = $("#writes");
+  if (l.none) { box.innerHTML = `<p class="empty">${esc(l.none)}</p>`; return; }
+  const node = [...l.path].reverse().map(find).find((n) => n && n.parameters && n.parameters.operation === "upsert");
+  const props = node ? node.parameters.additionalFields.customPropertiesUi.customPropertiesValues : [];
+  const rows = [`<tr><td>email</td><td>${esc(l.email)}<span class="tag">match key</span></td></tr>`];
+  for (const p of props) {
+    let v = l.values[p.property], tag = "";
+    if (Array.isArray(v)) { tag = v[1]; v = v[0]; }
+    if (v === undefined) v = String(p.value).startsWith("=") ? "(from the run)" : p.value;
+    rows.push(`<tr><td>${esc(p.property)}</td><td>${esc(v)}${tag ? `<span class="tag new">${esc(tag)}</span>` : ""}</td></tr>`);
+  }
+  for (const [k, v] of l.kept || []) rows.push(`<tr class="kept"><td>${esc(k)}</td><td>${esc(v)}<span class="tag">unchanged</span></td></tr>`);
+  box.innerHTML = `<table class="writes">${rows.join("")}</table>`;
+}
+
+function slackText(template, l) {
+  const v = l.values;
+  const text = template.replace(/^=/, "").replace(/\{\{([\s\S]*?)\}\}/g, (_, x) =>
+    /lastNodeExecuted/.test(x) ? clean(find(l.fail).name)
+    : /error\.message/.test(x) ? l.error
+    : /\.reasoning/.test(x) ? v.ai_icp_reasoning
+    : /personalized_hook/.test(x) ? v.ai_personalized_hook
+    : /\.domain\b/.test(x) ? l.domain
+    : /\.email\b/.test(x) ? l.email
+    : /utm_source/.test(x) ? l.form.utm_source
+    : /utm_campaign/.test(x) ? l.form.utm_campaign
+    : "...");
+  return esc(clean(text.replace(/:[a-z_]+:\s*/g, "")))
+    .replace(/\*([^*]+)\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .split("\n").map((line) => `<p>${line}</p>`).join("");
+}
+
+function renderSlack(l) {
+  const box = $("#slack");
+  const last = find(l.path[l.path.length - 1]);
+  if (last && last.type.endsWith("slack")) {
+    const p = last.parameters;
+    box.innerHTML = `<div class="msg"><div class="ch">${esc(p.channel)}</div>${slackText(p.text, l)}</div>` +
+      (l.route === "sales" ? `<p class="aside">The opener is for the rep to check. Nothing is emailed automatically.</p>` : "");
+  } else if (!WF && !l.quiet) {
+    box.innerHTML = `<p class="empty">The message text is read from the workflow file, which has not loaded.</p>`;
+  } else {
+    box.innerHTML = `<p class="empty">${esc(l.quiet || "")}</p>`;
+  }
+}
+
+// ---- graph, drawn from the workflow file ----
+const NODE_W = 84;
+function shortName(name) {
+  const i = name.indexOf(": ");
+  return clean((i > -1 ? name.slice(i + 2) : name).replace(/\s*\((JSON|Self-Serve|Preserve First-Touch UTM)\)/, ""));
+}
+function typeLabel(n) {
+  const t = n.type.split(".").pop();
+  return { httpRequest: n.name.startsWith("AI") ? "ai call" : "http", errorTrigger: "on error", scheduleTrigger: "schedule" }[t] || t;
+}
+
+function drawGraph() {
+  const canvas = $("#canvas");
+  const nodes = WF.nodes;
+  const xs = nodes.map((n) => n.position[0]), ys = nodes.map((n) => n.position[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const pad = 26;
+  const width = Math.max(canvas.parentElement.clientWidth, 1100);
+  const s = (width - 2 * pad - NODE_W) / (maxX - minX);
+  const height = Math.round((maxY - minY) * s + 2 * pad + 90);
+  canvas.style.width = width + "px";
+  canvas.style.height = height + "px";
+  const pos = new Map(nodes.map((n) => [n.name, { x: pad + (n.position[0] - minX) * s, y: pad + (n.position[1] - minY) * s }]));
+
+  const edges = new Map();
+  for (const [src, c] of Object.entries(WF.connections)) {
+    (c.main || []).forEach((outs, i) => (outs || []).forEach((t) => {
+      const key = src + "->" + t.node;
+      const e = edges.get(key) || { from: src, to: t.node, outs: [] };
+      e.outs.push(i); edges.set(key, e);
+    }));
+  }
+  const byName = new Map(nodes.map((n) => [n.name, n]));
+  const label = (e) => {
+    const n = byName.get(e.from), t = n.type.split(".").pop();
+    if (t === "if") return e.outs.map((o) => (o === 0 ? "yes" : "no")).join(", ");
+    if (t === "switch") {
+      const keys = (n.parameters.rules?.values || []).map((r) => r.outputKey);
+      const names = e.outs.map((o) => keys[o] || "Tier 3");
+      return names.every((n) => n.startsWith("Tier ")) ? "Tier " + names.map((n) => n.slice(5)).join("/") : names.join(", ");
+    }
+    return "";
+  };
+
+  canvas.innerHTML = "";
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("aria-hidden", "true");
+  canvas.append(svg);
+  for (const e of edges.values()) {
+    const a = pos.get(e.from), b = pos.get(e.to);
+    const x1 = a.x + NODE_W, y1 = a.y + 29, x2 = b.x, y2 = b.y + 29, mx = (x1 + x2) / 2;
+    const path = document.createElementNS(NS, "path");
+    path.setAttribute("d", `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
+    path.setAttribute("class", "edge");
+    path.dataset.from = e.from; path.dataset.to = e.to;
+    svg.append(path);
+    const text = label(e);
+    if (text) {
+      const t = document.createElementNS(NS, "text");
+      t.setAttribute("x", x1 + 5); t.setAttribute("y", y1 + (y2 > y1 ? 16 : -8));
+      t.setAttribute("class", "elabel");
+      t.dataset.from = e.from; t.dataset.to = e.to;
+      t.textContent = text;
+      svg.append(t);
+    }
+  }
+  for (const n of nodes) {
+    const p = pos.get(n.name);
+    const d = document.createElement("div");
+    d.className = "node";
+    d.style.left = p.x + "px"; d.style.top = p.y + "px";
+    d.title = clean(n.name);
+    d.dataset.name = n.name;
+    d.innerHTML = `<span class="t">${esc(typeLabel(n))}</span><span class="n">${esc(shortName(n.name))}</span>`;
+    canvas.append(d);
+  }
+  paint(LEADS[current]);
+}
+
+function paint(l) {
+  if (!WF) return;
+  const names = l.path.map((k) => find(k)).filter(Boolean).map((n) => n.name);
+  const failName = l.fail ? find(l.fail)?.name : null;
+  const pairs = new Set(names.slice(1).map((n, i) => names[i] + "->" + n));
+  document.querySelectorAll("#canvas .node").forEach((d) => {
+    const i = names.indexOf(d.dataset.name);
+    d.style.transitionDelay = i > -1 ? i * 70 + "ms" : "0ms";
+    d.classList.toggle("off", i === -1);
+    d.classList.toggle("on", i > -1);
+    d.classList.toggle("end", i === names.length - 1);
+    d.classList.toggle("fail", d.dataset.name === failName);
+  });
+  document.querySelectorAll("#canvas .edge, #canvas .elabel").forEach((el) => {
+    const on = pairs.has(el.dataset.from + "->" + el.dataset.to);
+    el.classList.toggle("on", on);
+    el.classList.toggle("dim", !on);
+  });
+  const end = document.querySelector(`#canvas .node.end`);
+  const sc = $("#scroller");
+  if (end && sc.scrollWidth > sc.clientWidth) sc.scrollTo({ left: Math.max(0, end.offsetLeft - sc.clientWidth / 2), behavior: "smooth" });
+}
+
+let resizeTimer;
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => WF && drawGraph(), 150); });
+
+// ---- field matrix, computed from the HubSpot nodes ----
+function drawMatrix() {
+  const writers = WF.nodes.filter((n) => n.type.endsWith("hubspot") && n.parameters.operation === "upsert");
+  const props = [];
+  for (const n of writers) for (const p of n.parameters.additionalFields.customPropertiesUi.customPropertiesValues) if (!props.includes(p.property)) props.push(p.property);
+  const order = ["first_touch_utm_campaign", "last_touch_utm_source", "last_touch_utm_campaign", "icp_tier", "routing_status", "ai_icp_reasoning", "ai_personalized_hook", "ai_confidence_score"];
+  props.sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
+  const head = `<thead><tr><th>Property</th>${writers.map((n) => `<th>${esc(shortName(n.name))}</th>`).join("")}</tr></thead>`;
+  const rows = props.map((prop) => `<tr><th>${esc(prop)}</th>${writers.map((n) => {
+    const p = n.parameters.additionalFields.customPropertiesUi.customPropertiesValues.find((x) => x.property === prop);
+    if (!p) return "<td>-</td>";
+    return String(p.value).includes("Search Existing Contact") ? '<td class="once">only if blank</td>' : '<td class="w">writes</td>';
+  }).join("")}</tr>`);
+  for (const prop of ["lifecyclestage", "hubspot_owner_id"]) {
+    if (!props.includes(prop)) rows.push(`<tr class="never"><th>${prop}</th><td colspan="${writers.length}">never written by any node</td></tr>`);
+  }
+  $("#matrix").innerHTML = head + `<tbody>${rows.join("")}</tbody>`;
+}
+
+// ---- test cases, read from the CSV ----
+function parseCSV(text) {
+  const rows = [];
+  for (const line of text.trim().split(/\r?\n/)) {
+    const cells = []; let cur = "", q = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (q) { if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; }
+      else if (ch === '"') q = true; else if (ch === ",") { cells.push(cur); cur = ""; } else cur += ch;
+    }
+    cells.push(cur); rows.push(cells);
+  }
+  const [head, ...body] = rows;
+  return body.map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] || ""])));
+}
+
+const ROUTES = [
+  ["sales_fast_track", "Sales fast track", "Contact in HubSpot and an alert for a rep"],
+  ["marketing_nurture", "Marketing nurture", "Logged as nurture, Sales not interrupted"],
+  ["self_serve_nurture", "Free email filter", "Stopped before any AI call"],
+  ["needs_human_review", "Human review", "Held for Ops, no guessing"],
+];
+
+function drawCases(rows) {
+  const box = $("#case-groups");
+  box.innerHTML = ROUTES.map(([key, title, what]) => {
+    const list = rows.filter((r) => r.expected_route === key);
+    if (!list.length) return "";
+    return `<div class="group"><div class="count">${list.length}</div><h3>${title}</h3><div class="rt">${key}</div>
+      <div class="chips">${list.map((r) => `<button type="button" class="chip" aria-pressed="false" data-id="${esc(r.case_id)}">${esc(r.company)}</button>`).join("")}</div>
+      <p class="case-detail" aria-live="polite">${esc(what)}.</p></div>`;
+  }).join("");
+  box.addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    const r = rows.find((x) => x.case_id === chip.dataset.id);
+    const group = chip.closest(".group");
+    group.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c === chip)));
+    group.querySelector(".case-detail").innerHTML = `<span class="q">${esc(r.company)} (${esc(r.domain)}): "${esc(r.sample_inbound_intent)}"</span><span class="m">${esc(r.expected_icp_tier)}, tests: ${esc(r.guardrail_tested.replace(/->/g, "to"))}</span>`;
+  });
+}
+
+// ---- load ----
+fetch(BASE + "workflows/ai-inbound-lead-router.n8n.json")
+  .then((r) => (r.ok ? r.text() : Promise.reject(new Error("HTTP " + r.status))))
+  .then((text) => {
+    WF_TEXT = text; WF = JSON.parse(text);
+    drawGraph(); drawMatrix(); select(current);
+  })
+  .catch(() => {
+    $("#canvas").innerHTML = `<p class="canvas-msg">The workflow file did not load. <a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json">Open it on GitHub</a>.</p>`;
+    $("#matrix").innerHTML = `<tbody><tr><td>The workflow file did not load.</td></tr></tbody>`;
+  });
+
+fetch(BASE + "data/real-companies-benchmark.csv")
+  .then((r) => (r.ok ? r.text() : Promise.reject(new Error("HTTP " + r.status))))
+  .then((t) => drawCases(parseCSV(t)))
+  .catch(() => { $("#case-groups").innerHTML = `<div class="group">The CSV did not load. <a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/data/real-companies-benchmark.csv">Open it on GitHub</a>.</div>`; });
+
+// A real download of the file already fetched for the graph.
+$("#dl").addEventListener("click", (e) => {
+  if (!WF_TEXT) return;
+  e.preventDefault();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([WF_TEXT], { type: "application/json" }));
+  a.download = "ai-inbound-lead-router.n8n.json";
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
-render(0);
+
+select(0);
 </script>
 </body>
 </html>

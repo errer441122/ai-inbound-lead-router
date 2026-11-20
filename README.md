@@ -4,6 +4,8 @@ A visual **n8n + HubSpot + LLM** workflow system that turns raw inbound form sub
 
 **[Explore the interactive workflow walkthrough](https://errer441122.github.io/ai-inbound-lead-router/)** · **[Download n8n blueprint (`workflows/ai-inbound-lead-router.n8n.json`)](workflows/ai-inbound-lead-router.n8n.json)**
 
+[![The walkthrough page: five example leads and the 15-node n8n workflow drawn from its own file](assets/page.png)](https://errer441122.github.io/ai-inbound-lead-router/)
+
 ---
 
 ## The Business Problem
