@@ -1,8 +1,5 @@
-# Never commit real ad exports, customer emails, or generated outputs
+# Never commit real customer PII exports
 data/*.csv
+!data/real-companies-benchmark.csv
 build/
-report/
-__pycache__/
-*.pyc
-.venv/
 .env

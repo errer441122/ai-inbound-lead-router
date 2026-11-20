@@ -1,0 +1,31 @@
+case_id,company,domain,country,business_model,sample_test_input_type,sample_inbound_intent,expected_route,expected_icp_tier,guardrail_tested
+01,Velasca,velasca.com,IT,D2C E-commerce,corporate_domain,Looking to restructure Klaviyo win-back and VIP exclusion flows,sales_fast_track,Tier 1,D2C repeat lifecycle match
+02,Cortilia,cortilia.it,IT,D2C E-commerce,corporate_domain,Need CRM promo suppression when fresh grocery deliveries run late,sales_fast_track,Tier 1,D2C retention + CX trigger
+03,Tannico,tannico.it,IT,D2C E-commerce,corporate_domain,Auditing Meta Lead Ads to CRM double opt-in conversion drop,sales_fast_track,Tier 1,Paid-to-CRM attribution fit
+04,Gymshark,gymshark.com,UK,D2C E-commerce,corporate_domain,Pre-send QA and margin guardrails for global promotional sends,sales_fast_track,Tier 1,Enterprise D2C CRM fit
+05,Huel,huel.com,UK,D2C E-commerce,corporate_domain,Subscription repeat-order timing and churn prevention audit,sales_fast_track,Tier 1,Subscription lifecycle fit
+06,Factorial,factorialhr.com,ES,B2B SaaS,corporate_domain,Improving HubSpot MQL-to-SQL routing speed across EU markets,sales_fast_track,Tier 1,B2B RevOps routing fit
+07,Qonto,qonto.com,FR,B2B SaaS,corporate_domain,Multi-market HubSpot field hygiene and UTM attribution cleanup,sales_fast_track,Tier 1,B2B MOps governance fit
+08,Brevo,brevo.com,FR,B2B SaaS,corporate_domain,Benchmarking AI search visibility and GEO content gaps in Italy,sales_fast_track,Tier 1,Martech SaaS GEO fit
+09,Typeform,typeform.com,ES,B2B SaaS,corporate_domain,Inbound lead enrichment workflow from product signups to CRM,sales_fast_track,Tier 1,PLG-to-Sales GTM fit
+10,Holded,holded.com,ES,B2B SaaS,corporate_domain,Automating inbound SMB lead qualification and lifecycle nurture,sales_fast_track,Tier 1,B2B SaaS automation fit
+11,Pipedrive,pipedrive.com,EE,B2B SaaS,corporate_domain,Evaluating AI-assisted pre-send QA across lifecycle email teams,sales_fast_track,Tier 1,CRM vendor fit
+12,Fatture in Cloud,fattureincloud.it,IT,B2B SaaS,corporate_domain,Reducing lead response time for mid-market accounting demos,sales_fast_track,Tier 1,Italian B2B SaaS fit
+13,Pennylane,pennylane.com,FR,B2B SaaS,corporate_domain,Standardizing First-Touch vs Last-Touch UTM governance in HubSpot,sales_fast_track,Tier 1,MOps UTM governance fit
+14,Scalapay,scalapay.com,IT,Fintech,corporate_domain,Merchant onboarding email automation and HubSpot lifecycle audit,sales_fast_track,Tier 1,B2B2C merchant CRM fit
+15,Casavo,casavo.com,IT,Proptech,corporate_domain,Automating seller lead qualification and CRM deduplication,sales_fast_track,Tier 1,High-value lead routing fit
+16,Satispay,satispay.com,IT,Fintech,corporate_domain,Exploring benchmarks on AI search visibility in consumer fintech,marketing_nurture,Tier 2,Exploratory intent -> MQL nurture
+17,Bending Spoons,bendingspoons.com,IT,Consumer Apps,corporate_domain,General inquiry about marketing automation frameworks,marketing_nurture,Tier 2,Large consumer app studio -> Tier 2
+18,Subito,subito.it,IT,Marketplace,corporate_domain,Downloading the CRM deliverability checklist,marketing_nurture,Tier 2,Content download -> Nurture
+19,Vinted,vinted.com,LT,Marketplace,corporate_domain,Reading about GEO crawler governance in Europe,marketing_nurture,Tier 2,Passive research -> Tier 2
+20,Too Good To Go,toogoodtogo.com,DK,Marketplace,corporate_domain,Interested in reviewing multi-country B2B partner onboarding flows,marketing_nurture,Tier 2,Marketplace partner fit -> Tier 2
+21,Klarna,klarna.com,SE,Fintech,corporate_domain,General request for case study deck,marketing_nurture,Tier 2,Early-stage deck request -> Tier 2
+22,N26,n26.com,DE,Fintech,corporate_domain,Newsletter signup from blog article on DMARC,marketing_nurture,Tier 2,Top-of-funnel newsletter -> Tier 2
+23,Revolut,revolut.com,UK,Fintech,corporate_domain,Requesting webinar recording on AI automation workflows,marketing_nurture,Tier 2,Webinar lead -> Tier 2
+24,Wise,wise.com,UK,Fintech,corporate_domain,Comparing multi-engine AI visibility measurement methodologies,marketing_nurture,Tier 2,Research inquiry -> Tier 2
+25,Zalando,zalando.de,DE,Marketplace,corporate_domain,Looking for general information on European email compliance,marketing_nurture,Tier 2,General info -> Tier 2
+26,Personal Inquiry A,gmail.com,IT,Unknown,free_email_blocked,Hi can you send me pricing for a small shop?,self_serve_nurture,Tier 3 - Free Email,Corporate Email Guard skips AI call
+27,Personal Inquiry B,libero.it,IT,Unknown,free_email_blocked,Looking for internship / collaboration info,self_serve_nurture,Tier 3 - Free Email,Corporate Email Guard blocks noise
+28,Personal Inquiry C,outlook.com,EU,Unknown,free_email_blocked,Just testing your form,self_serve_nurture,Tier 3 - Free Email,Corporate Email Guard saves credits
+29,Bot-Protected Domain,cloudflare-blocked.example,EU,Unknown,http_fetch_blocked,Interested in enterprise CRM migration next quarter,needs_human_review,Manual Review,HTTP continueOnFail + confidence < 80%
+30,Ambiguous One-Word Inquiry,stealth-co.example,EU,Unknown,low_confidence_input,Info please,needs_human_review,Manual Review,AI confidence < 80% -> Ops review queue
