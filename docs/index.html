@@ -4,126 +4,217 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>AI Inbound Lead Enrichment, ICP Scoring &amp; HubSpot Routing</title>
-<meta name="description" content="15-node visual n8n workflow connecting Inbound Forms, AI Structured ICP Qualification, HubSpot Field Ownership guardrails, and instant Slack routing.">
+<title>AI Inbound Lead Router &mdash; Interactive Walkthrough</title>
+<meta name="description" content="Visual interactive walkthrough of an n8n + HubSpot + AI ICP Scoring workflow with free-email filtering, Field Ownership rules, and human-in-the-loop confidence gating.">
 <style>
 :root {
   color-scheme: light;
-  --page: #f5f6fa; --surface: #ffffff; --surface-2: #f8f9fd; --ink: #101524; --ink-2: #465066; --muted: #6b748a;
-  --line: #dce1ee; --accent: #2451d8; --accent-ink: #ffffff; --tint: #ebf0ff;
-  --good: #0f6b4a; --good-tint: #e8f5ee; --warn: #945600; --warn-tint: #fef5e5; --bad: #b91c1c; --bad-tint: #fef2f2;
+  --bg: #f6f7fb; --card: #ffffff; --sub: #f8f9fc; --ink: #0f172a; --ink2: #475569; --muted: #64748b;
+  --line: #e2e8f0; --accent: #2563eb; --accent-ink: #ffffff; --accent-soft: #eff6ff;
+  --ok: #0f766e; --ok-bg: #ecfdf5; --ok-bd: #a7f3d0;
+  --warn: #b45309; --warn-bg: #fffbeb; --warn-bd: #fde68a;
+  --bad: #b91c1c; --bad-bg: #fef2f2; --bad-bd: #fecaca;
+  --hs: #ff7a59; --slack-bg: #1a1d21; --slack-ink: #f8fafc; --slack-muted: #94a3b8;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --page: #0b0f1a; --surface: #121827; --surface-2: #182034; --ink: #eef2ff; --ink-2: #bcc6de; --muted: #8a95b0;
-    --line: #27324b; --accent: #6ea0ff; --accent-ink: #07122b; --tint: #172447;
-    --good: #4dd09d; --good-tint: #13281f; --warn: #f5be5b; --warn-tint: #2c2211; --bad: #f87171; --bad-tint: #331416;
+    --bg: #0b1020; --card: #111827; --sub: #172033; --ink: #f1f5f9; --ink2: #cbd5e1; --muted: #94a3b8;
+    --line: #243047; --accent: #60a5fa; --accent-ink: #071226; --accent-soft: #172554;
+    --ok: #34d399; --ok-bg: #0c291f; --ok-bd: #14533d;
+    --warn: #fbbf24; --warn-bg: #2c210b; --warn-bd: #5c4212;
+    --bad: #f87171; --bad-bg: #2f1417; --bad-bd: #632227;
+    --slack-bg: #0f1318; --slack-ink: #f8fafc; --slack-muted: #94a3b8;
   }
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--page); color: var(--ink); font: 15.5px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
-code, pre { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.9em; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15.5px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
 a { color: var(--accent); text-underline-offset: 3px; }
-.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-header.nav { position: sticky; top: 0; z-index: 5; background: var(--page); border-bottom: 1px solid var(--line); }
-header.nav .wrap { display: flex; align-items: center; gap: 22px; height: 60px; }
-.brand { font-weight: 700; color: var(--ink); text-decoration: none; letter-spacing: -0.02em; }
-.nav nav { display: flex; gap: 18px; font-size: 14px; }
-.nav nav a { color: var(--ink-2); text-decoration: none; }
-.nav .src { margin-left: auto; font-size: 14px; }
+code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 0.88em; background: var(--sub); padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); }
+.wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
 
-.hero { padding: 50px 0 30px; }
-.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
-h1 { font-size: clamp(28px, 4.2vw, 44px); line-height: 1.08; letter-spacing: -0.03em; margin: 0 0 12px; max-width: 24ch; }
-.lead { font-size: 17px; color: var(--ink-2); max-width: 70ch; margin: 0 0 18px; }
-.actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.btn { display: inline-block; font: inherit; font-size: 14.5px; font-weight: 600; border-radius: 999px; padding: 10px 20px; text-decoration: none; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+header.nav { position: sticky; top: 0; z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line); }
+header.nav .wrap { display: flex; align-items: center; gap: 18px; min-height: 58px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
+.brand { font-weight: 800; color: var(--ink); text-decoration: none; letter-spacing: -0.02em; font-size: 15px; }
+.nav-links { display: flex; gap: 14px; font-size: 13.5px; margin-left: auto; flex-wrap: wrap; }
+.nav-links a { color: var(--ink2); text-decoration: none; font-weight: 500; }
+.nav-links a:hover { color: var(--accent); }
+
+.hero { padding: 44px 0 26px; }
+.kicker { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
+h1 { font-size: clamp(28px, 4vw, 42px); line-height: 1.1; letter-spacing: -0.03em; margin: 0 0 12px; max-width: 24ch; }
+.lead { font-size: 17px; color: var(--ink2); max-width: 72ch; margin: 0 0 20px; }
+.cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; font-weight: 600; font-size: 14px; text-decoration: none; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer; }
 .btn.ghost { background: transparent; color: var(--accent); }
 
-section.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px 30px; margin: 0 0 26px; }
-section.card h2 { font-size: 23px; letter-spacing: -0.02em; margin: 0 0 8px; }
-section.card > p { color: var(--ink-2); margin: 0 0 18px; max-width: 78ch; }
+.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.cmp { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+.cmp.before { border-left: 4px solid var(--bad); }
+.cmp.after { border-left: 4px solid var(--ok); }
+.cmp h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 8px; }
+.cmp.before h2 { color: var(--bad); }
+.cmp.after h2 { color: var(--ok); }
+.cmp ul { margin: 0; padding-left: 18px; font-size: 14.5px; color: var(--ink2); display: grid; gap: 5px; }
 
-.flow-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-bottom: 16px; }
-.node-btn { text-align: left; font: inherit; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; color: var(--ink); transition: border-color .15s, background .15s; }
-.node-btn:hover, .node-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--tint); }
-.node-btn small { display: block; font-size: 11.5px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
-.node-btn b { display: block; font-size: 14.5px; margin-top: 2px; }
-.inspector { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
-.inspector h3 { margin: 0 0 6px; font-size: 17px; }
-.inspector p { margin: 0 0 10px; color: var(--ink-2); font-size: 14.5px; }
-.inspector pre { margin: 0; padding: 12px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); overflow-x: auto; font-size: 12.5px; }
+section.block { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px 28px; margin: 22px 0; }
+section.block h2 { font-size: 22px; letter-spacing: -0.02em; margin: 0 0 6px; }
+.subhead { color: var(--ink2); margin: 0 0 18px; font-size: 15px; max-width: 76ch; }
+
+/* Scenario Picker */
+.scenarios { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.sc-btn { text-align: left; font: inherit; background: var(--sub); border: 2px solid var(--line); border-radius: 12px; padding: 13px 15px; cursor: pointer; color: var(--ink); transition: all .15s; }
+.sc-btn:hover { border-color: var(--accent); }
+.sc-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 2px 10px rgba(37,99,235,.12); }
+.sc-btn .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-bottom: 6px; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); border: 1px solid var(--ok-bd); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-bd); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); border: 1px solid var(--bad-bd); }
+.sc-btn b { display: block; font-size: 14.5px; }
+.sc-btn span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+/* Visual Pipeline Track */
+.pipeline { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin-bottom: 20px; }
+.step { border-radius: 11px; padding: 11px 12px; border: 1.5px solid var(--line); background: var(--sub); position: relative; transition: all .2s; }
+.step small { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.step b { display: block; font-size: 13px; line-height: 1.25; margin: 3px 0; }
+.step p { margin: 0; font-size: 12px; color: var(--ink2); line-height: 1.35; }
+.step.ok { background: var(--ok-bg); border-color: var(--ok-bd); }
+.step.ok small { color: var(--ok); }
+.step.warn { background: var(--warn-bg); border-color: var(--warn-bd); }
+.step.warn small { color: var(--warn); }
+.step.bad { background: var(--bad-bg); border-color: var(--bad-bd); }
+.step.bad small { color: var(--bad); }
+.step.skip { opacity: .42; border-style: dashed; }
+
+/* Realistic Output Cards */
+.outputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px; }
+.mock { border-radius: 14px; border: 1px solid var(--line); overflow: hidden; display: flex; flex-direction: column; }
+.mock-head { padding: 11px 16px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); background: var(--sub); }
+.mock-head .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 7px; }
+.mock-body { padding: 16px; background: var(--card); flex: 1; }
+
+.input-box { background: var(--sub); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 13.5px; align-items: baseline; }
+.input-box strong { color: var(--muted); font-size: 12px; text-transform: uppercase; margin-right: 5px; }
+
+.kv { display: grid; gap: 9px; font-size: 13.5px; }
+.kv-row { display: flex; justify-content: space-between; gap: 12px; padding-bottom: 7px; border-bottom: 1px solid var(--line); align-items: center; }
+.kv-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.kv-row span { color: var(--muted); font-size: 12.5px; }
+.kv-row strong { text-align: right; font-weight: 600; }
+
+.slack-card { background: var(--slack-bg); color: var(--slack-ink); padding: 16px; flex: 1; font-size: 13.5px; }
+.slack-meta { font-size: 12px; color: var(--slack-muted); margin-bottom: 8px; }
+.slack-msg { border-left: 3px solid #38bdf8; padding-left: 12px; display: grid; gap: 6px; }
+.slack-msg.quiet { border-left-color: #64748b; color: var(--slack-muted); }
+.slack-msg.warn { border-left-color: #fbbf24; }
+.slack-note { font-size: 11.5px; color: #fbbf24; margin-top: 6px; font-weight: 600; }
+
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.rule-card { background: var(--sub); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+.rule-card h3 { margin: 6px 0 6px; font-size: 15.5px; }
+.rule-card p { margin: 0; font-size: 14px; color: var(--ink2); }
 
 .scroll { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
 th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--line); }
-thead th { font-size: 12px; color: var(--muted); font-weight: 600; white-space: nowrap; }
-.badge { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
-.badge.good { background: var(--good-tint); color: var(--good); }
-.badge.warn { background: var(--warn-tint); color: var(--warn); }
-.badge.bad { background: var(--bad-tint); color: var(--bad); }
+thead th { font-size: 12px; color: var(--muted); font-weight: 600; }
 
-footer { border-top: 1px solid var(--line); padding: 24px 0 44px; color: var(--ink-2); font-size: 13.5px; }
-@media (max-width: 640px) { .wrap { padding: 0 16px; } .nav nav { display: none; } section.card { padding: 20px 16px; } }
+footer { border-top: 1px solid var(--line); padding: 22px 0 40px; color: var(--muted); font-size: 13.5px; }
+@media (max-width: 900px) { .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .wrap { padding: 0 16px; } section.block { padding: 18px 16px; } .pipeline { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 <header class="nav"><div class="wrap">
   <a class="brand" href="#top">AI Inbound Lead Router</a>
-  <nav>
-    <a href="#workflow">Interactive Workflow</a>
-    <a href="#ownership">Field Ownership</a>
-    <a href="#benchmark">30-Case Benchmark</a>
+  <nav class="nav-links">
+    <a href="https://github.com/errer441122">Portfolio Home</a>
+    <a href="https://errer441122.github.io/ai-visibility-audit-geo/">1. GEO Audit</a>
+    <a href="https://errer441122.github.io/ecommerce-cx-analytics/">3. CX Promo Guard</a>
+    <a href="https://errer441122.github.io/lifecycle-automation-lab/">4. CRM QA</a>
+    <a href="https://github.com/errer441122/ai-inbound-lead-router">GitHub Repo &rarr;</a>
   </nav>
-  <a class="src" href="https://github.com/errer441122/ai-inbound-lead-router">Repository on GitHub</a>
 </div></header>
 
 <main class="wrap" id="top">
   <section class="hero">
-    <p class="eyebrow">AI Automation &middot; GTM &amp; HubSpot Operations</p>
-    <h1>Qualify, enrich, and route inbound leads into HubSpot in seconds &mdash; without dirtying the CRM.</h1>
-    <p class="lead">A 15-node visual <strong>n8n</strong> blueprint connecting inbound forms, free-email filtering, HubSpot duplicate &amp; UTM governance, structured AI ICP scoring with a confidence gate, and human-in-the-loop Slack alerts.</p>
-    <div class="actions">
+    <p class="kicker">Visual n8n Workflow &middot; HubSpot Operations &middot; AI Lead Qualification</p>
+    <h1>Turn raw inbound form leads into clean, scored HubSpot contacts in under 10 seconds.</h1>
+    <p class="lead">Click any of the 4 real-world test scenarios below to see exactly how the workflow filters noise, protects Sales fields, checks AI confidence, and routes the right leads to the right place.</p>
+    <div class="cta-row">
       <a class="btn" href="https://raw.githubusercontent.com/errer441122/ai-inbound-lead-router/main/workflows/ai-inbound-lead-router.n8n.json" download="ai-inbound-lead-router.n8n.json">Download n8n Blueprint (.json)</a>
       <a class="btn ghost" href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/sop-inbound-lead-routing.md">Read 10-Min Setup SOP</a>
+      <a class="btn ghost" href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/prompts/icp-scoring-prompt.md">View AI Prompt &amp; Rubric</a>
+    </div>
+
+    <div class="compare">
+      <div class="cmp before">
+        <h2>Without This System</h2>
+        <ul>
+          <li>High-fit leads wait hours mixed with <code>@gmail.com</code> spam and students.</li>
+          <li>Repeat form fills overwrite original <strong>First-Touch UTMs</strong> and break attribution.</li>
+          <li>Naive AI automations guess when a website is blocked or email prospects unreviewed.</li>
+        </ul>
+      </div>
+      <div class="cmp after">
+        <h2>With This n8n + HubSpot System</h2>
+        <ul>
+          <li>Free personal emails are filtered at Step 2 (&euro;0 spent on AI/enrichment).</li>
+          <li><strong>Field Ownership Matrix</strong> locks First-Touch UTMs &amp; Sales-owned deal stages.</li>
+          <li>AI confidence <strong>&lt;80%</strong> routes to human review; Sales openers appear in Slack only.</li>
+        </ul>
+      </div>
     </div>
   </section>
 
-  <section class="card" id="workflow">
-    <h2>Interactive Node-by-Node Walkthrough</h2>
-    <p>Click any stage of the n8n workflow to inspect its exact business rule, failure handling, and sample data payload.</p>
-    <div class="flow-steps" id="steps"></div>
-    <div class="inspector" id="inspector"></div>
+  <!-- INTERACTIVE SIMULATOR -->
+  <section class="block" id="simulator">
+    <h2>Interactive Simulator: Watch 4 Different Leads Flow Through the System</h2>
+    <p class="subhead">Choose a lead scenario below. Watch which stages execute, which stages stop early, and inspect the exact <strong>HubSpot Contact Card</strong> and <strong>Slack Notification</strong> produced.</p>
+
+    <div class="scenarios" id="scenarios" role="group" aria-label="Lead test scenarios"></div>
+
+    <div class="input-box" id="input-box"></div>
+    <div class="pipeline" id="pipeline"></div>
+    <div class="outputs" id="outputs"></div>
   </section>
 
-  <section class="card" id="ownership">
-    <h2>HubSpot Field Ownership Matrix</h2>
-    <p>Prevents automations from overwriting Sales-owned fields or destroying First-Touch attribution when an existing lead submits a second form.</p>
-    <div class="scroll">
-      <table>
-        <thead><tr><th>HubSpot Property</th><th>Owner</th><th>Overwrite Policy</th><th>Why It Matters</th></tr></thead>
-        <tbody>
-          <tr><td><code>first_touch_utm_campaign</code></td><td>Marketing Ops</td><td><span class="badge good">Fill if blank ONLY</span></td><td>Preserves true original acquisition channel permanently</td></tr>
-          <tr><td><code>last_touch_utm_campaign</code></td><td>Marketing Ops</td><td><span class="badge warn">Always refresh</span></td><td>Tracks the latest campaign that triggered conversion</td></tr>
-          <tr><td><code>icp_tier</code></td><td>AI Qualification</td><td><span class="badge good">Fill if blank / review</span></td><td>Never downgrades a contact manually qualified by Sales</td></tr>
-          <tr><td><code>lifecyclestage</code> &amp; <code>hubspot_owner_id</code></td><td>Sales / RevOps</td><td><span class="badge bad">NEVER overwrite</span></td><td>Existing SQLs, Opportunities, and Customers stay untouched</td></tr>
-        </tbody>
-      </table>
+  <!-- FIELD OWNERSHIP RULES -->
+  <section class="block" id="rules">
+    <h2>How the CRM Stays Clean (Field Ownership Rules)</h2>
+    <p class="subhead">Automations break CRMs when they blindly overwrite human work. Every HubSpot update follows three strict ownership rules:</p>
+    <div class="grid-3">
+      <div class="rule-card">
+        <span class="pill ok">Fill If Blank Only</span>
+        <h3>First-Touch UTMs Locked Forever</h3>
+        <p>When an existing lead returns via a newsletter, <code>first_touch_utm_campaign</code> is preserved so you never lose the original acquisition campaign.</p>
+      </div>
+      <div class="rule-card">
+        <span class="pill warn">Always Refresh</span>
+        <h3>Last-Touch UTM &amp; AI Summary</h3>
+        <p><code>last_touch_utm_campaign</code>, <code>ai_icp_reasoning</code>, and the suggested opener refresh on every new inquiry so reps always see fresh context.</p>
+      </div>
+      <div class="rule-card">
+        <span class="pill bad">Never Overwrite</span>
+        <h3>Sales Stages &amp; Rep Ownership</h3>
+        <p>If a contact is already an SQL, Opportunity, or Customer with an assigned rep, the workflow never downgrades them back to Lead or steals ownership.</p>
+      </div>
     </div>
   </section>
 
-  <section class="card" id="benchmark">
-    <h2>30-Case Routing Benchmark (25 Real European Companies + 5 Edge Cases)</h2>
-    <p>Every routing branch is validated against 25 real European D2C &amp; B2B SaaS public domains plus 5 explicit failure/hygiene cases (free personal emails, bot-blocked sites, ambiguous messages). Estimated LLM cost: <strong>~&euro;0.001&ndash;&euro;0.002 per corporate lead</strong>.</p>
+  <!-- 30 REAL COMPANIES BENCHMARK -->
+  <section class="block" id="benchmark">
+    <h2>Validated Across 30 Concrete Cases (25 Real European Companies + 5 Edge Cases)</h2>
+    <p class="subhead">All four routing paths were validated against real European D2C and B2B SaaS public domains plus 5 explicit failure cases. Estimated LLM API cost: <strong>~&euro;0.001&ndash;&euro;0.002 per qualified corporate lead</strong> (~&euro;1&ndash;2 per 1,000 leads).</p>
     <div class="scroll">
       <table>
-        <thead><tr><th>Route Branch</th><th>Cases</th><th>Real Examples Tested</th><th>Guardrail Verified</th></tr></thead>
+        <thead><tr><th>Outcome Path</th><th>Cases</th><th>Real Companies / Inputs in Benchmark</th><th>Business Result</th></tr></thead>
         <tbody>
-          <tr><td><span class="badge good">Tier 1 &rarr; Sales Fast-Track</span></td><td>15</td><td>Velasca, Cortilia, Tannico, Gymshark, Factorial, Qonto, Brevo, Typeform</td><td>HubSpot Upsert + First-Touch UTM preserved + Slack alert</td></tr>
-          <tr><td><span class="badge warn">Tier 2 &rarr; Marketing Nurture</span></td><td>10</td><td>Satispay, Bending Spoons, Subito, Vinted, Klarna, N26, Revolut, Wise</td><td>MQL Nurture list; keeps Sales Slack channel focused</td></tr>
-          <tr><td><span class="badge bad">Tier 3 &rarr; Free Email Blocked</span></td><td>3</td><td><code>gmail.com</code>, <code>libero.it</code>, <code>outlook.com</code></td><td>Skips HTTP fetch &amp; AI call completely (&euro;0 spent)</td></tr>
-          <tr><td><span class="badge warn">Manual Review Queue</span></td><td>2</td><td>HTTP 403 blocked domain; ambiguous 2-word form inquiry</td><td><code>continueOnFail</code> + confidence &lt;80% &rarr; <code>needs_human_review</code></td></tr>
+          <tr><td><span class="pill ok">Tier 1 &rarr; Sales Fast-Track</span></td><td><strong>15</strong></td><td>Velasca, Cortilia, Tannico, Gymshark, Huel, Factorial, Qonto, Brevo, Typeform, Holded, Pipedrive, Fatture in Cloud, Pennylane, Scalapay, Casavo</td><td>Enriched HubSpot contact + instant Slack alert with factual hook</td></tr>
+          <tr><td><span class="pill warn">Tier 2 &rarr; Marketing Nurture</span></td><td><strong>10</strong></td><td>Satispay, Bending Spoons, Subito, Vinted, Too Good To Go, Klarna, N26, Revolut, Wise, Zalando</td><td>Logged cleanly as MQL in nurture; Sales Slack stays focused</td></tr>
+          <tr><td><span class="pill bad">Tier 3 &rarr; Free Email Filter</span></td><td><strong>3</strong></td><td><code>gmail.com</code>, <code>libero.it</code>, <code>outlook.com</code></td><td>Bypassed before enrichment &amp; LLM (&euro;0 API spend)</td></tr>
+          <tr><td><span class="pill warn">Needs Human Review</span></td><td><strong>2</strong></td><td>Bot-blocked website (HTTP 403) &middot; Ambiguous 2-word message</td><td>Safely held in HubSpot Ops review queue; zero guesswork</td></tr>
         </tbody>
       </table>
     </div>
@@ -131,52 +222,195 @@ footer { border-top: 1px solid var(--line); padding: 24px 0 44px; color: var(--i
 </main>
 
 <footer><div class="wrap">
-  <p>Visual n8n workflow, HubSpot governance specs, and Operations SOP by Riccardo Capanna. Full files in <a href="https://github.com/errer441122/ai-inbound-lead-router">github.com/errer441122/ai-inbound-lead-router</a>.</p>
+  <p>Visual n8n automation blueprint, HubSpot Field Ownership Matrix, and Operations SOP &mdash; <a href="https://github.com/errer441122/ai-inbound-lead-router">inspect full repository on GitHub</a>.</p>
 </div></footer>
 
 <script>
-const NODES = [
+const CASES = [
   {
-    step: "Step 1-2", title: "Webhook + Hygiene Normalization",
-    desc: "Captures form submission + hidden UTM parameters, lowercases email, extracts corporate domain, and defaults missing UTMs safely.",
-    sample: '{\n  "email": "growth@velasca.com",\n  "domain": "velasca.com",\n  "utm_source": "linkedin",\n  "utm_campaign": "eu_crm_audit_q2",\n  "message": "Looking to restructure Klaviyo win-back and VIP exclusion flows"\n}'
+    id: "tier1",
+    badge: "Tier 1 · Fast-Track",
+    badgeCls: "ok",
+    title: "Velasca (Italian D2C)",
+    subtitle: "High-fit corporate lead -> Slack Sales Alert",
+    input: { email: "growth@velasca.com", utm: "linkedin / eu_crm_audit_q2", msg: "\"Looking to restructure Klaviyo win-back and VIP discount exclusion flows.\"" },
+    steps: [
+      { k: "1. Intake", t: "Form + UTMs", d: "Normalized domain velasca.com", s: "ok" },
+      { k: "2. Email Gate", t: "Corporate OK", d: "Not a free consumer domain", s: "ok" },
+      { k: "3. HubSpot", t: "Duplicate Check", d: "New contact -> First-Touch unlocked", s: "ok" },
+      { k: "4. Website", t: "Public Context", d: "Fetched velasca.com homepage", s: "ok" },
+      { k: "5. AI Gate", t: "Confidence 92%", d: "Above 80% threshold -> Tier 1", s: "ok" },
+      { k: "6. Action", t: "CRM + Slack Alert", d: "Sales notified in <10 seconds", s: "ok" }
+    ],
+    hubspot: [
+      ["Contact", "growth@velasca.com"],
+      ["ICP Tier", "Tier 1 (High Fit)"],
+      ["Routing Status", "sales_fast_track"],
+      ["AI Confidence", "92 / 100"],
+      ["First-Touch UTM", "eu_crm_audit_q2 (Locked)"],
+      ["Last-Touch UTM", "eu_crm_audit_q2"],
+      ["AI Reasoning", "Italian D2C footwear brand with clear repeat-purchase & Klaviyo VIP margin need."]
+    ],
+    slackChannel: "#inbound-tier1-leads",
+    slackType: "active",
+    slackTitle: "Tier 1 Inbound Lead — velasca.com",
+    slackBody: [
+      "Contact: growth@velasca.com · Source: linkedin / eu_crm_audit_q2",
+      "Why Tier 1: Italian D2C brand seeking Klaviyo win-back & VIP discount guardrails.",
+      "Suggested opener: \"Noticed Velasca's direct-to-consumer Italian footwear model — separating full-price repeat buyers from win-back offers is usually the fastest margin lift in Klaviyo.\""
+    ],
+    slackNote: "Human-in-the-loop: suggested opener is NEVER emailed automatically."
   },
   {
-    step: "Step 3-4", title: "Guard: Corporate Email Check",
-    desc: "Blocks free personal providers (gmail.com, libero.it, yahoo.com, outlook.com) BEFORE any enrichment or AI call runs, routing them to self-serve nurture at zero API cost.",
-    sample: 'IF domain in ["gmail.com", "yahoo.com", "libero.it", "outlook.com"]\n  -> HubSpot Upsert: icp_tier = "Tier 3 - Free Email"\n  -> routing_status = "self_serve_nurture"\n  -> LLM API calls made: 0'
+    id: "tier2",
+    badge: "Tier 2 · Nurture",
+    badgeCls: "warn",
+    title: "Satispay (Exploratory)",
+    subtitle: "Valid company, early research -> Marketing Nurture",
+    input: { email: "research@satispay.com", utm: "organic / blog_geo_guide", msg: "\"Downloading your benchmark on AI search visibility in fintech.\"" },
+    steps: [
+      { k: "1. Intake", t: "Form + UTMs", d: "Normalized domain satispay.com", s: "ok" },
+      { k: "2. Email Gate", t: "Corporate OK", d: "Valid corporate domain", s: "ok" },
+      { k: "3. HubSpot", t: "Duplicate Check", d: "Existing contact -> First-Touch kept!", s: "ok" },
+      { k: "4. Website", t: "Public Context", d: "Fetched satispay.com homepage", s: "ok" },
+      { k: "5. AI Gate", t: "Confidence 88%", d: "Above 80% threshold -> Tier 2", s: "warn" },
+      { k: "6. Action", t: "MQL Nurture", d: "Enrolled in nurture; no Sales ping", s: "warn" }
+    ],
+    hubspot: [
+      ["Contact", "research@satispay.com (Existing)"],
+      ["ICP Tier", "Tier 2 (Medium Fit)"],
+      ["Routing Status", "marketing_nurture"],
+      ["AI Confidence", "88 / 100"],
+      ["First-Touch UTM", "meta_webinar_q1 (Preserved!)"],
+      ["Last-Touch UTM", "blog_geo_guide (Updated)"],
+      ["AI Reasoning", "Real enterprise fintech, but top-of-funnel research download without immediate buying intent."]
+    ],
+    slackChannel: "#inbound-tier1-leads",
+    slackType: "quiet",
+    slackTitle: "No Slack notification sent",
+    slackBody: [
+      "Tier 2 exploratory leads go cleanly into HubSpot Marketing Nurture without interrupting Account Executives.",
+      "Existing First-Touch UTM (meta_webinar_q1) stayed locked while Last-Touch UTM refreshed to blog_geo_guide."
+    ],
+    slackNote: ""
   },
   {
-    step: "Step 5-6", title: "HubSpot Lookup + Website Context",
-    desc: "Checks HubSpot for an existing contact (to protect First-Touch UTMs and Sales ownership), then fetches public homepage text with continueOnFail=true so 403/timeouts never crash the run.",
-    sample: 'HubSpot Match: none (new contact)\nHTTP Fetch https://velasca.com -> 200 OK (2,400 chars stripped text)\nOn failure/403 -> continueOnFail passes empty excerpt to AI -> triggers Manual Review'
+    id: "free",
+    badge: "Blocked · €0 AI Spend",
+    badgeCls: "bad",
+    title: "mario.rossi@gmail.com",
+    subtitle: "Personal free email -> Filtered before enrichment",
+    input: { email: "mario.rossi@gmail.com", utm: "meta / lead_form_broad", msg: "\"Hi, can you send me pricing for a small project?\"" },
+    steps: [
+      { k: "1. Intake", t: "Form + UTMs", d: "Extracted domain gmail.com", s: "ok" },
+      { k: "2. Email Gate", t: "STOPPED HERE", d: "Free personal domain detected", s: "bad" },
+      { k: "3. HubSpot", t: "Skipped", d: "No deep lookup needed", s: "skip" },
+      { k: "4. Website", t: "Skipped", d: "0 HTTP calls made", s: "skip" },
+      { k: "5. AI Gate", t: "Skipped (€0)", d: "0 LLM tokens spent", s: "skip" },
+      { k: "6. Action", t: "Self-Serve Track", d: "Tagged Tier 3 - Free Email", s: "bad" }
+    ],
+    hubspot: [
+      ["Contact", "mario.rossi@gmail.com"],
+      ["ICP Tier", "Tier 3 - Free Email"],
+      ["Routing Status", "self_serve_nurture"],
+      ["AI Confidence", "Not called (€0 spent)"],
+      ["Last-Touch UTM", "lead_form_broad"],
+      ["Why Filtered", "Blocks consumer webmail domains from burning enrichment/LLM credits or creating Sales noise."]
+    ],
+    slackChannel: "#inbound-tier1-leads",
+    slackType: "quiet",
+    slackTitle: "No Slack notification sent",
+    slackBody: [
+      "Personal email routed straight to self-serve resources in HubSpot.",
+      "AI cost saved: 100% (0 API calls executed)."
+    ],
+    slackNote: ""
   },
   {
-    step: "Step 7-9", title: "AI Structured JSON + Confidence >= 80%",
-    desc: "Low-temperature (0.1) LLM scores ICP strictly from provided facts. Any confidence score below 80 routes directly to HubSpot needs_human_review instead of guessing.",
-    sample: '{\n  "icp_tier": "Tier 1",\n  "confidence_score": 92,\n  "business_model": "D2C E-commerce",\n  "industry": "Footwear & Apparel",\n  "reasoning": "Italian D2C brand with high repeat-purchase motion seeking Klaviyo win-back & VIP rules.",\n  "personalized_hook": "Noticed Velasca runs a direct-to-consumer Italian footwear model where protecting full-price repeat buyers from win-back discounts directly lifts margin.",\n  "risk_flags": []\n}'
-  },
-  {
-    step: "Step 10-15", title: "CRM Routing, Slack Alert & Error Trigger",
-    desc: "Tier 1 upserts HubSpot preserving First-Touch UTM and fires a Slack alert with the suggested opener (human reviews before emailing). Global Error Trigger alerts #martech-alerts on any outage.",
-    sample: 'Slack #inbound-tier1-leads:\n*Tier 1 Inbound Lead* (velasca.com)\nCampaign: linkedin / eu_crm_audit_q2\nWhy Tier 1: Italian D2C brand seeking Klaviyo win-back & VIP rules.\nSuggested opener (review before sending): ...'
+    id: "review",
+    badge: "Human Review Gate",
+    badgeCls: "warn",
+    title: "Blocked Site / Vague Lead",
+    subtitle: "HTTP 403 or AI Confidence 62% -> Safe Ops Queue",
+    input: { email: "info@stealth-brand.eu", utm: "google / cpc_martech", msg: "\"Info please\"" },
+    steps: [
+      { k: "1. Intake", t: "Form + UTMs", d: "Normalized stealth-brand.eu", s: "ok" },
+      { k: "2. Email Gate", t: "Corporate OK", d: "Corporate domain passed", s: "ok" },
+      { k: "3. HubSpot", t: "Duplicate Check", d: "New contact", s: "ok" },
+      { k: "4. Website", t: "HTTP 403 Caught", d: "continueOnFail kept lead alive!", s: "warn" },
+      { k: "5. AI Gate", t: "Confidence 62%", d: "Below 80% -> Blocked from auto-route", s: "warn" },
+      { k: "6. Action", t: "Ops Review Queue", d: "Flagged needs_human_review", s: "warn" }
+    ],
+    hubspot: [
+      ["Contact", "info@stealth-brand.eu"],
+      ["ICP Tier", "(Held for human check)"],
+      ["Routing Status", "needs_human_review"],
+      ["AI Confidence", "62 / 100 (Below 80% gate)"],
+      ["Risk Flags", "insufficient_website_context, vague_message"],
+      ["Why Held", "Site blocked scraping and message had 2 words — workflow refuses to guess or spam Sales."]
+    ],
+    slackChannel: "#martech-ops-review",
+    slackType: "warn",
+    slackTitle: "Manual Review Required — stealth-brand.eu",
+    slackBody: [
+      "Contact: info@stealth-brand.eu · AI Confidence: 62% (<80% threshold)",
+      "Reason: Website returned HTTP 403 and message ('Info please') lacks buying context.",
+      "Action: Review in HubSpot Active List 'needs_human_review' (takes 30 seconds)."
+    ],
+    slackNote: "Zero lost leads, zero hallucinated outreach."
   }
 ];
-const stepsEl = document.getElementById("steps");
-const inspEl = document.getElementById("inspector");
-function show(idx) {
-  [...stepsEl.children].forEach((b, i) => b.setAttribute("aria-pressed", String(i === idx)));
-  const n = NODES[idx];
-  inspEl.innerHTML = `<h3>${n.step}: ${n.title}</h3><p>${n.desc}</p><pre>${n.sample.replace(/</g,"&lt;")}</pre>`;
+
+const scEl = document.getElementById("scenarios");
+const inEl = document.getElementById("input-box");
+const pipeEl = document.getElementById("pipeline");
+const outEl = document.getElementById("outputs");
+
+function render(idx) {
+  const c = CASES[idx];
+  [...scEl.children].forEach((b, i) => b.setAttribute("aria-pressed", String(i === idx)));
+  inEl.innerHTML = `
+    <div><strong>Incoming Email</strong> ${c.input.email}</div>
+    <div><strong>Captured UTM</strong> <code>${c.input.utm}</code></div>
+    <div><strong>Form Message</strong> ${c.input.msg}</div>
+  `;
+  pipeEl.innerHTML = c.steps.map(st => `
+    <div class="step ${st.s}">
+      <small>${st.k}</small>
+      <b>${st.t}</b>
+      <p>${st.d}</p>
+    </div>
+  `).join("");
+
+  const hsRows = c.hubspot.map(([k, v]) => `<div class="kv-row"><span>${k}</span><strong>${v}</strong></div>`).join("");
+  const slLines = c.slackBody.map(l => `<div>${l}</div>`).join("");
+  outEl.innerHTML = `
+    <div class="mock">
+      <div class="mock-head"><span><i class="dot" style="background:var(--hs)"></i>HubSpot Contact Record</span><span>Upserted cleanly</span></div>
+      <div class="mock-body"><div class="kv">${hsRows}</div></div>
+    </div>
+    <div class="mock">
+      <div class="mock-head"><span><i class="dot" style="background:#38bdf8"></i>Slack · ${c.slackChannel}</span><span>${c.slackType === "quiet" ? "Zero noise" : "Real-time alert"}</span></div>
+      <div class="slack-card">
+        <div class="slack-meta">n8n Lead Router &middot; just now</div>
+        <div class="slack-msg ${c.slackType}">
+          <strong>${c.slackTitle}</strong>
+          ${slLines}
+        </div>
+        ${c.slackNote ? `<div class="slack-note">${c.slackNote}</div>` : ""}
+      </div>
+    </div>
+  `;
 }
-NODES.forEach((n, i) => {
+
+CASES.forEach((c, i) => {
   const b = document.createElement("button");
-  b.type = "button"; b.className = "node-btn";
-  b.innerHTML = `<small>${n.step}</small><b>${n.title}</b>`;
-  b.addEventListener("click", () => show(i));
-  stepsEl.append(b);
+  b.type = "button"; b.className = "sc-btn";
+  b.innerHTML = `<span class="pill ${c.badgeCls}">${c.badge}</span><b>${c.title}</b><span>${c.subtitle}</span>`;
+  b.addEventListener("click", () => render(i));
+  scEl.append(b);
 });
-show(0);
+render(0);
 </script>
 </body>
 </html>
