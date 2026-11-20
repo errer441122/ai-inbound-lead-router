@@ -218,7 +218,7 @@ footer a:hover { color: var(--accent); }
   <a class="brand" href="#top">lead<b>/</b>router</a>
   <nav class="nav-links" aria-label="Projects">
     <a class="proj" href="https://errer441122.github.io/ai-visibility-audit-geo/">GEO audit</a>
-    <a class="proj" href="https://errer441122.github.io/ecommerce-cx-analytics/">CX promo guard</a>
+    <a class="proj" href="https://errer441122.github.io/cx-crm-promo-guard/">CX promo guard</a>
     <a class="proj" href="https://errer441122.github.io/lifecycle-automation-lab/">CRM pre-send QA</a>
     <a href="https://github.com/errer441122/ai-inbound-lead-router">GitHub repo</a>
   </nav>
@@ -305,7 +305,7 @@ footer a:hover { color: var(--accent); }
         <li><b>Test</b><p>Point a form webhook at <code>/inbound-lead-router</code> with hidden UTM fields, send one test lead, check the contact and the alert.</p></li>
       </ol>
       <ul class="files">
-        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><span class="p">workflows/ai-inbound-lead-router.n8n.json</span><span class="go">open</span><span class="d">The 15-node workflow, ready to import</span></a></li>
+        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><span class="p">workflows/ai-inbound-lead-router.n8n.json</span><span class="go">open</span><span class="d">The 14-node workflow (+ standalone error-notifier.n8n.json), ready to import</span></a></li>
         <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/prompts/icp-scoring-prompt.md"><span class="p">prompts/icp-scoring-prompt.md</span><span class="go">open</span><span class="d">ICP rubric, system prompt and JSON contract</span></a></li>
         <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/field-ownership-matrix.md"><span class="p">docs/field-ownership-matrix.md</span><span class="go">open</span><span class="d">Overwrite rules for every HubSpot property</span></a></li>
         <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/sop-inbound-lead-routing.md"><span class="p">docs/sop-inbound-lead-routing.md</span><span class="go">open</span><span class="d">Setup, daily review and incident playbook</span></a></li>
@@ -318,7 +318,7 @@ footer a:hover { color: var(--accent); }
 <footer><div class="wrap">
   <span class="who">Riccardo Capanna</span>
   <a href="https://errer441122.github.io/ai-visibility-audit-geo/">GEO audit</a>
-  <a href="https://errer441122.github.io/ecommerce-cx-analytics/">CX promo guard</a>
+  <a href="https://errer441122.github.io/cx-crm-promo-guard/">CX promo guard</a>
   <a href="https://errer441122.github.io/lifecycle-automation-lab/">CRM pre-send QA</a>
   <a href="https://github.com/errer441122">GitHub</a>
   <a href="https://www.linkedin.com/in/riccardo-capanna-039a43415/">LinkedIn</a>
@@ -333,47 +333,46 @@ const BASE = location.hostname.endsWith("github.io")
 const LEADS = [
   {
     email: "growth@velasca.com", route: "sales", what: "Tier 1: alert for a rep",
-    form: { utm_source: "linkedin", utm_campaign: "eu_crm_audit_q2", message: "Looking to restructure Klaviyo win-back and VIP discount exclusion flows." },
+    form: { utm_source: "linkedin", utm_medium: "paid_social", utm_campaign: "eu_crm_audit_q2", message: "Looking to restructure Klaviyo win-back and VIP discount exclusion flows." },
     domain: "velasca.com",
-    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Confidence", "Switch", "Upsert Tier 1", "Tier 1 Sales Alert"],
-    trace: ["Form arrives with email, message and UTMs.", "Domain velasca.com, UTMs lowercased.", "Not a free-mail domain: continue.", "No contact yet, so the first touch can be written.", "velasca.com answers; its text goes to the model.", "gpt-4o-mini, temperature 0.1, JSON only: Tier 1, confidence 92.", "92 is at least 80: route automatically.", "Tier 1 branch.", "Six properties written.", "Alert posted for a rep to follow up."],
-    values: { icp_tier: "Tier 1", routing_status: "sales_fast_track", ai_icp_reasoning: "Italian D2C footwear brand with a repeat-purchase and VIP-margin need in Klaviyo.", ai_personalized_hook: "Keeping full-price repeat buyers out of win-back offers is usually the quickest margin fix in Klaviyo.", first_touch_utm_campaign: ["eu_crm_audit_q2", "new contact: written once"], last_touch_utm_campaign: "eu_crm_audit_q2" },
+    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Switch", "Upsert Tier 1", "Tier 1 Sales Alert"],
+    trace: ["Form arrives with email, message and UTMs.", "Domain velasca.com, UTMs lowercased.", "Not a free-mail domain: continue.", "No contact yet (alwaysOutputData=true keeps new leads flowing).", "velasca.com answers; its text goes to the model.", "gpt-4o-mini, temperature 0.1, JSON only: Tier 1, confidence 92.", "Parsed once with safe defaults (confidence_score=92).", "92 is at least 80: route automatically.", "Tier 1 branch.", "All 3 first-touch & last-touch UTMs + ICP fields written.", "Alert posted for a rep to follow up."],
+    values: { icp_tier: "Tier 1", routing_status: "sales_fast_track", ai_confidence_score: "92", ai_icp_reasoning: "Italian D2C footwear brand with a repeat-purchase and VIP-margin need in Klaviyo.", ai_personalized_hook: "Keeping full-price repeat buyers out of win-back offers is usually the quickest margin fix in Klaviyo.", first_touch_utm_source: ["linkedin", "new contact: written once"], first_touch_utm_medium: ["paid_social", "new contact: written once"], first_touch_utm_campaign: ["eu_crm_audit_q2", "new contact: written once"], last_touch_utm_source: "linkedin", last_touch_utm_medium: "paid_social", last_touch_utm_campaign: "eu_crm_audit_q2" },
   },
   {
     email: "research@satispay.com", route: "nurture", what: "Tier 2: first touch kept",
-    form: { utm_source: "organic", utm_campaign: "blog_geo_guide", message: "Downloading your benchmark on AI search visibility in fintech." },
+    form: { utm_source: "organic", utm_medium: "seo", utm_campaign: "blog_geo_guide", message: "Downloading your benchmark on AI search visibility in fintech." },
     domain: "satispay.com",
-    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Confidence", "Switch", "Upsert Tier 2/3"],
-    trace: ["Form arrives with email, message and UTMs.", "Domain satispay.com.", "Corporate domain: continue.", "Existing contact, first touch meta_webinar_q1 on record.", "satispay.com answers.", "Tier 2, confidence 88: a research download, no buying intent yet.", "88 is at least 80: route automatically.", "Tier 2 branch.", "Four properties written. First touch is not in this node."],
-    values: { icp_tier: "Tier 2", routing_status: "marketing_nurture", ai_icp_reasoning: "Real fintech company; a top-of-funnel research download without buying intent.", last_touch_utm_campaign: "blog_geo_guide" },
-    kept: [["first_touch_utm_campaign", "meta_webinar_q1"]],
+    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Switch", "Upsert Tier 2/3"],
+    trace: ["Form arrives with email, message and UTMs.", "Domain satispay.com.", "Corporate domain: continue.", "Existing contact found: first_touch_utm_* preserved.", "satispay.com answers.", "Tier 2, confidence 88: a research download, no buying intent yet.", "Parsed once with safe defaults (confidence_score=88).", "88 is at least 80: route automatically.", "Tier 2 branch.", "Existing first_touch_utm_* kept; last_touch_utm_* refreshed."],
+    values: { icp_tier: "Tier 2", routing_status: "marketing_nurture", ai_confidence_score: "88", ai_icp_reasoning: "Real fintech company; a top-of-funnel research download without buying intent.", first_touch_utm_source: ["meta", "kept from existing"], first_touch_utm_medium: ["paid_social", "kept from existing"], first_touch_utm_campaign: ["meta_webinar_q1", "kept from existing"], last_touch_utm_source: "organic", last_touch_utm_medium: "seo", last_touch_utm_campaign: "blog_geo_guide" },
     quiet: "Nothing posted. Nurture leads go to marketing without pinging Sales.",
   },
   {
     email: "name@gmail.com", route: "self-serve", what: "Free email: no AI call",
-    form: { utm_source: "meta", utm_campaign: "lead_form_broad", message: "Hi, can you send me pricing for a small project?" },
+    form: { utm_source: "meta", utm_medium: "paid_social", utm_campaign: "lead_form_broad", message: "Hi, can you send me pricing for a small project?" },
     domain: "gmail.com",
     path: ["Webhook", "Normalize", "Corporate Email", "Free Email"],
-    trace: ["Form arrives with email, message and UTMs.", "Domain gmail.com.", "gmail.com is on the free-mail list: stop here.", "Four properties written. No website fetch, no AI call."],
-    values: { last_touch_utm_source: "meta", last_touch_utm_campaign: "lead_form_broad" },
+    trace: ["Form arrives with email, message and UTMs.", "Domain gmail.com.", "gmail.com is on the free-mail list: stop here.", "Five properties written (all 3 last_touch_utm_*). No website fetch, no AI call."],
+    values: { last_touch_utm_source: "meta", last_touch_utm_medium: "paid_social", last_touch_utm_campaign: "lead_form_broad" },
     quiet: "Nothing posted. Personal emails never reach Sales or the model.",
   },
   {
     email: "info@stealth-co.example", route: "review", what: "Blocked site: human review",
-    form: { utm_source: "google", utm_campaign: "cpc_martech", message: "Info please" },
+    form: { utm_source: "google", utm_medium: "cpc", utm_campaign: "cpc_martech", message: "Info please" },
     domain: "stealth-co.example",
-    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Confidence", "Manual Review"],
-    trace: ["Form arrives with email, message and UTMs.", "Domain stealth-co.example.", "Corporate domain: continue.", "New contact.", "HTTP 403. The node continues on error, so the lead is not lost.", "No page text and a two-word message: confidence 62.", "62 is under 80: no automatic routing.", "Three properties written, for the daily review."],
-    values: { ai_confidence_score: "62", last_touch_utm_campaign: "cpc_martech" },
+    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Manual Review"],
+    trace: ["Form arrives with email, message and UTMs.", "Domain stealth-co.example.", "Corporate domain: continue.", "New contact (alwaysOutputData=true).", "HTTP 403. The node continues on error, so the lead is not lost.", "No page text and a two-word message: confidence 62.", "Parsed once with safe defaults (confidence_score=62).", "62 is under 80: no automatic routing.", "Held in needs_human_review with all UTM attribution preserved."],
+    values: { ai_confidence_score: "62", ai_icp_reasoning: "Website unreachable (HTTP 403) and 2-word message lacks context.", first_touch_utm_source: ["google", "new contact: written once"], first_touch_utm_medium: ["cpc", "new contact: written once"], first_touch_utm_campaign: ["cpc_martech", "new contact: written once"], last_touch_utm_source: "google", last_touch_utm_medium: "cpc", last_touch_utm_campaign: "cpc_martech" },
     quiet: "Nothing posted. The lead waits in the HubSpot list needs_human_review, which Ops clears every morning.",
   },
   {
     email: "growth@velasca.com", route: "alert", what: "HubSpot returns 429",
-    form: { utm_source: "linkedin", utm_campaign: "eu_crm_audit_q2", message: "Looking to restructure Klaviyo win-back and VIP discount exclusion flows." },
+    form: { utm_source: "linkedin", utm_medium: "paid_social", utm_campaign: "eu_crm_audit_q2", message: "Looking to restructure Klaviyo win-back and VIP discount exclusion flows." },
     domain: "velasca.com",
-    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Confidence", "Switch", "Upsert Tier 1", "Error Trigger", "martech-alerts"],
+    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Switch", "Upsert Tier 1", "Error Trigger", "martech-alerts"],
     fail: "Upsert Tier 1",
-    trace: ["Same Velasca lead.", "Domain velasca.com.", "Corporate domain: continue.", "No contact yet.", "velasca.com answers.", "Tier 1, confidence 92.", "Route automatically.", "Tier 1 branch.", "HubSpot answers 429. This node does not continue on error, so the run fails.", "The Error Trigger catches the failed run.", "Ops is told which node failed and why."],
+    trace: ["Same Velasca lead.", "Domain velasca.com.", "Corporate domain: continue.", "No contact yet.", "velasca.com answers.", "Tier 1, confidence 92.", "Parsed cleanly.", "Route automatically.", "Tier 1 branch.", "HubSpot answers 429. This node does not continue on error, so the run fails.", "Standalone error-notifier.n8n.json catches the failed run.", "Ops is told which workflow & node failed and why."],
     values: {},
     none: "Nothing written: the run stopped at the upsert. Ops replays it from n8n's execution history once HubSpot recovers.",
     error: "Request failed with status code 429",
@@ -383,7 +382,7 @@ const LEADS = [
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const clean = (s) => s.replace(/\s*[\u2013\u2014]\s*/g, ": ");
-let WF = null, WF_TEXT = null, current = 0;
+let WF = null, ERR_WF = null, WF_TEXT = null, current = 0;
 
 // ---- lead picker (radio group with arrow keys) ----
 const leadsEl = $("#leads");
@@ -403,9 +402,10 @@ LEADS.forEach((l, i) => {
 });
 
 function find(keyword) {
-  if (!WF) return null;
   const k = keyword.toLowerCase();
-  return WF.nodes.find((n) => n.name.toLowerCase().includes(k)) || null;
+  const inMain = WF && WF.nodes.find((n) => n.name.toLowerCase().includes(k));
+  if (inMain) return inMain;
+  return (ERR_WF && ERR_WF.nodes.find((n) => n.name.toLowerCase().includes(k))) || null;
 }
 
 function select(i) {
@@ -445,8 +445,11 @@ function renderWrites(l) {
 function slackText(template, l) {
   const v = l.values;
   const text = template.replace(/^=/, "").replace(/\{\{([\s\S]*?)\}\}/g, (_, x) =>
-    /lastNodeExecuted/.test(x) ? clean(find(l.fail).name)
+    /workflow\.name/.test(x) ? (WF ? WF.name : "AI Inbound Lead Router")
+    : /execution\.url/.test(x) ? "https://n8n.local/execution/4821"
+    : /lastNodeExecuted/.test(x) ? clean(find(l.fail).name)
     : /error\.message/.test(x) ? l.error
+    : /confidence_score/.test(x) ? String(v.ai_confidence_score ?? 92)
     : /\.reasoning/.test(x) ? v.ai_icp_reasoning
     : /personalized_hook/.test(x) ? v.ai_personalized_hook
     : /\.domain\b/.test(x) ? l.domain
@@ -478,7 +481,7 @@ function renderSlack(l) {
 const NODE_W = 84;
 function shortName(name) {
   const i = name.indexOf(": ");
-  return clean((i > -1 ? name.slice(i + 2) : name).replace(/\s*\((JSON|Self-Serve|Preserve First-Touch UTM)\)/, ""));
+  return clean((i > -1 ? name.slice(i + 2) : name).replace(/\s*\((JSON|Self-Serve|Safe Defaults|Preserve First-Touch UTMs?)\)/, ""));
 }
 function typeLabel(n) {
   const t = n.type.split(".").pop();
@@ -585,7 +588,7 @@ function drawMatrix() {
   const writers = WF.nodes.filter((n) => n.type.endsWith("hubspot") && n.parameters.operation === "upsert");
   const props = [];
   for (const n of writers) for (const p of n.parameters.additionalFields.customPropertiesUi.customPropertiesValues) if (!props.includes(p.property)) props.push(p.property);
-  const order = ["first_touch_utm_campaign", "last_touch_utm_source", "last_touch_utm_campaign", "icp_tier", "routing_status", "ai_icp_reasoning", "ai_personalized_hook", "ai_confidence_score"];
+  const order = ["first_touch_utm_source", "first_touch_utm_medium", "first_touch_utm_campaign", "last_touch_utm_source", "last_touch_utm_medium", "last_touch_utm_campaign", "icp_tier", "routing_status", "ai_confidence_score", "ai_icp_reasoning", "ai_personalized_hook"];
   props.sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
   const head = `<thead><tr><th>Property</th>${writers.map((n) => `<th>${esc(shortName(n.name))}</th>`).join("")}</tr></thead>`;
   const rows = props.map((prop) => `<tr><th>${esc(prop)}</th>${writers.map((n) => {
@@ -642,6 +645,11 @@ function drawCases(rows) {
 }
 
 // ---- load ----
+fetch(BASE + "workflows/error-notifier.n8n.json")
+  .then((r) => (r.ok ? r.json() : null))
+  .then((wf) => { ERR_WF = wf; select(current); })
+  .catch(() => {});
+
 fetch(BASE + "workflows/ai-inbound-lead-router.n8n.json")
   .then((r) => (r.ok ? r.text() : Promise.reject(new Error("HTTP " + r.status))))
   .then((text) => {

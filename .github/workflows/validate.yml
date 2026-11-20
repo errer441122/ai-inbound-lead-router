@@ -11,10 +11,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify n8n workflow JSON and 30-case benchmark CSV
+      - name: Verify n8n workflow blueprints, bug fixes, and 30-case benchmark CSV
         run: |
-          python3 -c "import json; w=json.load(open('workflows/ai-inbound-lead-router.n8n.json')); assert len(w['nodes'])>=12 and w['connections']"
-          python3 -c "import csv; rows=list(csv.DictReader(open('data/real-companies-benchmark.csv'))); assert len(rows)==30, len(rows)"
+          python3 - <<'PY'
+          import csv, json
+          w = json.load(open('workflows/ai-inbound-lead-router.n8n.json'))
+          e = json.load(open('workflows/error-notifier.n8n.json'))
+          assert len(w['nodes']) == 14 and w['connections'], len(w['nodes'])
+          assert len(e['nodes']) == 2 and e['connections'], len(e['nodes'])
+          search = [n for n in w['nodes'] if n['name'] == 'HubSpot: Search Existing Contact'][0]
+          assert search.get('alwaysOutputData') is True, "HubSpot search must set alwaysOutputData=true"
+          t1 = [n for n in w['nodes'] if 'Upsert Tier 1' in n['name']][0]
+          props = {p['property'] for p in t1['parameters']['additionalFields']['customPropertiesUi']['customPropertiesValues']}
+          for p in ('first_touch_utm_source', 'first_touch_utm_medium', 'first_touch_utm_campaign', 'last_touch_utm_source', 'last_touch_utm_medium', 'last_touch_utm_campaign'):
+              assert p in props, f"Missing UTM property: {p}"
+          rows = list(csv.DictReader(open('data/real-companies-benchmark.csv')))
+          assert len(rows) == 30, len(rows)
+          PY
           test -f docs/field-ownership-matrix.md
           test -f docs/sop-inbound-lead-routing.md
           test -f prompts/icp-scoring-prompt.md
