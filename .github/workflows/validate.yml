@@ -11,16 +11,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify n8n workflow blueprints, bug fixes, and 30-case benchmark CSV
+      - name: Verify n8n workflow blueprints, n8n 2.48+ schema fixes, and 30-case benchmark CSV
         run: |
           python3 - <<'PY'
           import csv, json
           w = json.load(open('workflows/ai-inbound-lead-router.n8n.json'))
           e = json.load(open('workflows/error-notifier.n8n.json'))
+          raw = json.dumps(w)
           assert len(w['nodes']) == 14 and w['connections'], len(w['nodes'])
           assert len(e['nodes']) == 2 and e['connections'], len(e['nodes'])
+          assert '$vars' not in raw, "Community n8n does not support $vars"
+          assert any(n['type'] == 'n8n-nodes-base.code' for n in w['nodes']), "AI parser must be a real Code node"
           search = [n for n in w['nodes'] if n['name'] == 'HubSpot: Search Existing Contact'][0]
           assert search.get('alwaysOutputData') is True, "HubSpot search must set alwaysOutputData=true"
+          assert 'first_touch_utm_source' in search['parameters']['additionalFields']['properties']
+          for n in w['nodes']:
+              if n['type'] == 'n8n-nodes-base.hubspot':
+                  assert n['parameters'].get('authentication') == 'appToken'
+              if n['type'] == 'n8n-nodes-base.slack':
+                  assert n['parameters'].get('select') == 'channel' and 'channelId' in n['parameters']
           t1 = [n for n in w['nodes'] if 'Upsert Tier 1' in n['name']][0]
           props = {p['property'] for p in t1['parameters']['additionalFields']['customPropertiesUi']['customPropertiesValues']}
           for p in ('first_touch_utm_source', 'first_touch_utm_medium', 'first_touch_utm_campaign', 'last_touch_utm_source', 'last_touch_utm_medium', 'last_touch_utm_campaign'):

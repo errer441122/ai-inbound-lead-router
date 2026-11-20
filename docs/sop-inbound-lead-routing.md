@@ -14,8 +14,8 @@
    - `ai_confidence_score` (Number)
    - `ai_icp_reasoning` (Multi-line text)
    - `ai_personalized_hook` (Multi-line text)
-   - `first_touch_utm_source`, `first_touch_utm_campaign`, `last_touch_utm_source`, `last_touch_utm_campaign` (Single-line text)
-2. **Import the workflow into n8n:** *Workflows → Import from File* → select `workflows/ai-inbound-lead-router.n8n.json`.
+   - `first_touch_utm_source`, `first_touch_utm_medium`, `first_touch_utm_campaign`, `last_touch_utm_source`, `last_touch_utm_medium`, `last_touch_utm_campaign` (Single-line text)
+2. **Import both workflows into n8n:** *Workflows → Import from File* → select `workflows/ai-inbound-lead-router.n8n.json` and `workflows/error-notifier.n8n.json`, then in the main workflow open **Settings → Error Workflow** and select the Error Notifier.
 3. **Connect credentials inside n8n:** HubSpot Private App token (Contacts Read/Write), OpenAI/Gemini API key, and Slack Bot token (`#inbound-tier1-leads` and `#martech-alerts`).
 4. **Point your website/landing form webhook** (HubSpot Form, Typeform, Webflow, Tally) to the n8n Production Webhook URL, passing hidden UTM fields (`utm_source`, `utm_medium`, `utm_campaign`).
 

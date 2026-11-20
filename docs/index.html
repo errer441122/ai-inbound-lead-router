@@ -468,7 +468,7 @@ function renderSlack(l) {
   const last = find(l.path[l.path.length - 1]);
   if (last && last.type.endsWith("slack")) {
     const p = last.parameters;
-    box.innerHTML = `<div class="msg"><div class="ch">${esc(p.channel)}</div>${slackText(p.text, l)}</div>` +
+    box.innerHTML = `<div class="msg"><div class="ch">${esc(p.channelId?.value || p.channel || "#inbound-tier1-leads")}</div>${slackText(p.text, l)}</div>` +
       (l.route === "sales" ? `<p class="aside">The opener is for the rep to check. Nothing is emailed automatically.</p>` : "");
   } else if (!WF && !l.quiet) {
     box.innerHTML = `<p class="empty">The message text is read from the workflow file, which has not loaded.</p>`;
