@@ -153,15 +153,15 @@
               },
               {
                 "property": "last_touch_utm_source",
-                "value": "={{ $json.utm_source }}"
+                "value": "={{ $('Normalize Lead & Extract Domain').item.json.utm_source }}"
               },
               {
                 "property": "last_touch_utm_medium",
-                "value": "={{ $json.utm_medium }}"
+                "value": "={{ $('Normalize Lead & Extract Domain').item.json.utm_medium }}"
               },
               {
                 "property": "last_touch_utm_campaign",
-                "value": "={{ $json.utm_campaign }}"
+                "value": "={{ $('Normalize Lead & Extract Domain').item.json.utm_campaign }}"
               }
             ]
           }
