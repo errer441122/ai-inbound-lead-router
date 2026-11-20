@@ -18,13 +18,17 @@ jobs:
           w = json.load(open('workflows/ai-inbound-lead-router.n8n.json'))
           e = json.load(open('workflows/error-notifier.n8n.json'))
           raw = json.dumps(w)
-          assert len(w['nodes']) == 14 and w['connections'], len(w['nodes'])
+          assert len(w['nodes']) == 17 and w['connections'], len(w['nodes'])
+          owner_gate = [n for n in w['nodes'] if n['name'] == 'Guard: Owned by Sales?'][0]
+          assert 'hubspot_owner_id' in json.dumps(owner_gate['parameters']), "Owner gate must read hubspot_owner_id"
+          assert w['connections']['HubSpot: Search Existing Contact']['main'][0][0]['node'] == 'Guard: Owned by Sales?', "Search must feed the owner gate"
           assert len(e['nodes']) == 2 and e['connections'], len(e['nodes'])
           assert '$vars' not in raw, "Community n8n does not support $vars"
           assert any(n['type'] == 'n8n-nodes-base.code' for n in w['nodes']), "AI parser must be a real Code node"
           search = [n for n in w['nodes'] if n['name'] == 'HubSpot: Search Existing Contact'][0]
           assert search.get('alwaysOutputData') is True, "HubSpot search must set alwaysOutputData=true"
           assert 'first_touch_utm_source' in search['parameters']['additionalFields']['properties']
+          assert 'hubspot_owner_id' in search['parameters']['additionalFields']['properties']
           for n in w['nodes']:
               if n['type'] == 'n8n-nodes-base.hubspot':
                   assert n['parameters'].get('authentication') == 'appToken'

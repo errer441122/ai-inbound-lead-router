@@ -1,6 +1,6 @@
 # Structured AI ICP Qualification Prompt & Hallucination Guardrails
 
-This prompt powers Node 7 (`AI: Structured ICP Qualification`) inside [`workflows/ai-inbound-lead-router.n8n.json`](../workflows/ai-inbound-lead-router.n8n.json).
+This prompt powers the node `AI: Structured ICP Qualification (JSON)` inside [`workflows/ai-inbound-lead-router.n8n.json`](../workflows/ai-inbound-lead-router.n8n.json). The workflow embeds a condensed version with the same rules and JSON keys.
 
 ---
 
@@ -25,7 +25,7 @@ homepage excerpt, and inbound form message.
 
 Rules (non-negotiable):
 1. Never invent employee counts, revenue figures, or tech stacks not present in the input.
-2. If the homepage excerpt is empty, blocked, or ambiguous, set confidence_score <= 70
+2. If the homepage excerpt is empty, blocked, or ambiguous, set confidence_score below 75
    and add "insufficient_website_context" to risk_flags.
 3. The personalized_hook must reference ONE verifiable product or positioning fact
    visible in the homepage excerpt or inbound message — never generic flattery.

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>AI Inbound Lead Router: interactive walkthrough</title>
-<meta name="description" content="Run five example leads through a 15-node n8n workflow drawn from its own file: free-email filter, HubSpot field ownership, AI confidence gate and failure alerts.">
+<meta name="description" content="Run six example leads through an n8n workflow drawn from its own file: owner check, free-email filter, HubSpot field ownership, AI confidence gate and failure alerts.">
 <link rel="preload" href="fonts/geist-sans-600.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 @font-face { font-family: "Geist"; src: url("fonts/geist-sans-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
@@ -229,14 +229,14 @@ footer a:hover { color: var(--accent); }
     <div>
       <p class="eyebrow">inbound lead routing</p>
       <h1>Leads scored and routed without breaking HubSpot.</h1>
-      <p class="lede">A 15-node n8n workflow: filters free emails before any AI spend, locks first-touch UTMs, holds uncertain leads for review.</p>
+      <p class="lede">An n8n workflow that leaves Sales-owned contacts alone, filters free emails before any AI call and holds uncertain leads for review.</p>
       <div class="ctas">
         <a class="btn" href="#walkthrough">Run a lead through it</a>
         <a class="btn ghost" id="dl" href="https://raw.githubusercontent.com/errer441122/ai-inbound-lead-router/main/workflows/ai-inbound-lead-router.n8n.json" download="ai-inbound-lead-router.n8n.json">Download the workflow</a>
       </div>
     </div>
     <div class="picker" id="walkthrough">
-      <div class="picker-h"><span id="pick-label">Pick a lead</span><small>5 examples</small></div>
+      <div class="picker-h"><span id="pick-label">Pick a lead</span><small>6 examples</small></div>
       <div id="leads" role="radiogroup" aria-labelledby="pick-label"></div>
     </div>
   </section>
@@ -269,7 +269,8 @@ footer a:hover { color: var(--accent); }
     <p class="sub2">Read from the workflow file. A returning lead never loses its first campaign, and the fields Sales owns are never written.</p>
     <div class="fields">
       <ul class="rules">
-        <li><b>First touch is written once</b><p>The Tier 1 node keeps the value HubSpot already has and only fills it when it is blank.</p></li>
+        <li><b>Owned contacts stay with Sales</b><p>If HubSpot already has an owner, only last touch changes and the owner is told in Slack. No new score, no new route.</p></li>
+        <li><b>First touch is written once</b><p>Every node keeps the value HubSpot already has and only fills it when it is blank.</p></li>
         <li><b>Last touch refreshes every time</b><p>Every route updates the latest campaign, so reps see what brought the lead back.</p></li>
         <li><b>Sales fields stay with Sales</b><p>No node writes the lifecycle stage or the contact owner.</p></li>
       </ul>
@@ -280,7 +281,7 @@ footer a:hover { color: var(--accent); }
   <section class="wrap band" id="cases">
     <p class="eyebrow">data/real-companies-benchmark.csv</p>
     <h2>30 test cases, each with the route it should take</h2>
-    <p class="sub2">25 real European companies and 5 edge cases. It is the test matrix for the scoring rubric, not production traffic. Pick a company to see its test input.</p>
+    <p class="sub2">25 real company domains and 5 edge cases. The messages are invented test inputs, and the set has not been run end to end yet: it lists the route each case should take.</p>
     <div class="cases" id="case-groups"><div class="group">Loading the test cases...</div></div>
     <p class="note">Estimated model cost: about &euro;0.001-0.002 per corporate lead at gpt-4o-mini or gemini-2.5-flash list prices. Free emails cost nothing: they never reach the model.</p>
   </section>
@@ -305,11 +306,11 @@ footer a:hover { color: var(--accent); }
         <li><b>Test</b><p>Point a form webhook at <code>/inbound-lead-router</code> with hidden UTM fields, send one test lead, check the contact and the alert.</p></li>
       </ol>
       <ul class="files">
-        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><span class="p">workflows/ai-inbound-lead-router.n8n.json</span><span class="go">open</span><span class="d">The 14-node workflow (+ standalone error-notifier.n8n.json), ready to import</span></a></li>
+        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><span class="p">workflows/ai-inbound-lead-router.n8n.json</span><span class="go">open</span><span class="d">The workflow and the standalone error-notifier.n8n.json, ready to import</span></a></li>
         <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/prompts/icp-scoring-prompt.md"><span class="p">prompts/icp-scoring-prompt.md</span><span class="go">open</span><span class="d">ICP rubric, system prompt and JSON contract</span></a></li>
         <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/field-ownership-matrix.md"><span class="p">docs/field-ownership-matrix.md</span><span class="go">open</span><span class="d">Overwrite rules for every HubSpot property</span></a></li>
         <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/sop-inbound-lead-routing.md"><span class="p">docs/sop-inbound-lead-routing.md</span><span class="go">open</span><span class="d">Setup, daily review and incident playbook</span></a></li>
-        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/data/real-companies-benchmark.csv"><span class="p">data/real-companies-benchmark.csv</span><span class="go">open</span><span class="d">The 30 test cases and their expected routes</span></a></li>
+        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/data/real-companies-benchmark.csv"><span class="p">data/real-companies-benchmark.csv</span><span class="go">open</span><span class="d">30 test cases: real domains, invented messages, expected routes</span></a></li>
       </ul>
     </div>
   </section>
@@ -335,34 +336,43 @@ const LEADS = [
     email: "growth@velasca.com", route: "sales", what: "Tier 1: alert for a rep",
     form: { utm_source: "linkedin", utm_medium: "paid_social", utm_campaign: "eu_crm_audit_q2", message: "Looking to restructure Klaviyo win-back and VIP discount exclusion flows." },
     domain: "velasca.com",
-    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Switch", "Upsert Tier 1", "Tier 1 Sales Alert"],
-    trace: ["Form arrives with email, message and UTMs.", "Domain velasca.com, UTMs lowercased.", "Not a free-mail domain: continue.", "No contact yet (alwaysOutputData=true keeps new leads flowing).", "velasca.com answers; its text goes to the model.", "gpt-4o-mini, temperature 0.1, JSON only: Tier 1, confidence 92.", "Parsed once with safe defaults (confidence_score=92).", "92 is at least 80: route automatically.", "Tier 1 branch.", "All 3 first-touch & last-touch UTMs + ICP fields written.", "Alert posted for a rep to follow up."],
+    path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Corporate Email", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Switch", "Upsert Tier 1", "Tier 1 Sales Alert"],
+    trace: ["Form arrives with email, message and UTMs.", "Domain velasca.com, UTMs lowercased.", "No contact yet (alwaysOutputData=true keeps new leads flowing).", "No owner: the workflow may score and route.", "Not a free-mail domain: continue.", "velasca.com answers; its text goes to the model.", "gpt-4o-mini, temperature 0.1, JSON only: Tier 1, confidence 92.", "Parsed once with safe defaults (confidence_score=92).", "92 is at least 80: route automatically.", "Tier 1 branch.", "First touch written once, last touch and ICP fields written.", "Alert posted for a rep to follow up."],
     values: { icp_tier: "Tier 1", routing_status: "sales_fast_track", ai_confidence_score: "92", ai_icp_reasoning: "Italian D2C footwear brand with a repeat-purchase and VIP-margin need in Klaviyo.", ai_personalized_hook: "Keeping full-price repeat buyers out of win-back offers is usually the quickest margin fix in Klaviyo.", first_touch_utm_source: ["linkedin", "new contact: written once"], first_touch_utm_medium: ["paid_social", "new contact: written once"], first_touch_utm_campaign: ["eu_crm_audit_q2", "new contact: written once"], last_touch_utm_source: "linkedin", last_touch_utm_medium: "paid_social", last_touch_utm_campaign: "eu_crm_audit_q2" },
   },
   {
     email: "research@satispay.com", route: "nurture", what: "Tier 2: first touch kept",
     form: { utm_source: "organic", utm_medium: "seo", utm_campaign: "blog_geo_guide", message: "Downloading your benchmark on AI search visibility in fintech." },
     domain: "satispay.com",
-    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Switch", "Upsert Tier 2/3"],
-    trace: ["Form arrives with email, message and UTMs.", "Domain satispay.com.", "Corporate domain: continue.", "Existing contact found: first_touch_utm_* preserved.", "satispay.com answers.", "Tier 2, confidence 88: a research download, no buying intent yet.", "Parsed once with safe defaults (confidence_score=88).", "88 is at least 80: route automatically.", "Tier 2 branch.", "Existing first_touch_utm_* kept; last_touch_utm_* refreshed."],
+    path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Corporate Email", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Switch", "Upsert Tier 2/3"],
+    trace: ["Form arrives with email, message and UTMs.", "Domain satispay.com.", "Existing contact found: its first_touch_utm_* will be kept.", "No owner yet: score and route again.", "Corporate domain: continue.", "satispay.com answers.", "Tier 2, confidence 88: a research download, no buying intent yet.", "Parsed once with safe defaults (confidence_score=88).", "88 is at least 80: route automatically.", "Tier 2 branch.", "Existing first_touch_utm_* kept; last_touch_utm_* refreshed."],
     values: { icp_tier: "Tier 2", routing_status: "marketing_nurture", ai_confidence_score: "88", ai_icp_reasoning: "Real fintech company; a top-of-funnel research download without buying intent.", first_touch_utm_source: ["meta", "kept from existing"], first_touch_utm_medium: ["paid_social", "kept from existing"], first_touch_utm_campaign: ["meta_webinar_q1", "kept from existing"], last_touch_utm_source: "organic", last_touch_utm_medium: "seo", last_touch_utm_campaign: "blog_geo_guide" },
     quiet: "Nothing posted. Nurture leads go to marketing without pinging Sales.",
+  },
+  {
+    email: "crm@tannico.it", route: "owner", what: "Owned by Sales: left alone",
+    form: { utm_source: "klaviyo", utm_medium: "email", utm_campaign: "nl_black_friday_2026", message: "Can we add the VIP exclusion to our Black Friday sends too?" },
+    domain: "tannico.it", owner: "81234567",
+    path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Refresh Last Touch", "Tell the Owner"],
+    trace: ["Form arrives with email, message and UTMs.", "Domain tannico.it.", "Contact found, with an owner set in HubSpot.", "Owner set: Sales already works this contact.", "Only the three last-touch UTMs are written.", "The owner is told in Slack. No AI call, no new route."],
+    values: { last_touch_utm_source: "klaviyo", last_touch_utm_medium: "email", last_touch_utm_campaign: "nl_black_friday_2026" },
+    kept: [["icp_tier", "Tier 1"], ["routing_status", "sales_fast_track"], ["first_touch_utm_campaign", "eu_crm_audit_q2"], ["hubspot_owner_id", "81234567"]],
   },
   {
     email: "name@gmail.com", route: "self-serve", what: "Free email: no AI call",
     form: { utm_source: "meta", utm_medium: "paid_social", utm_campaign: "lead_form_broad", message: "Hi, can you send me pricing for a small project?" },
     domain: "gmail.com",
-    path: ["Webhook", "Normalize", "Corporate Email", "Free Email"],
-    trace: ["Form arrives with email, message and UTMs.", "Domain gmail.com.", "gmail.com is on the free-mail list: stop here.", "Five properties written (all 3 last_touch_utm_*). No website fetch, no AI call."],
-    values: { last_touch_utm_source: "meta", last_touch_utm_medium: "paid_social", last_touch_utm_campaign: "lead_form_broad" },
+    path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Corporate Email", "Free Email"],
+    trace: ["Form arrives with email, message and UTMs.", "Domain gmail.com.", "No contact yet.", "No owner: continue.", "gmail.com is on the free-mail list: stop here.", "Saved for self-serve nurture: first touch written once, last touch refreshed. No website fetch, no AI call."],
+    values: { first_touch_utm_source: ["meta", "new contact: written once"], first_touch_utm_medium: ["paid_social", "new contact: written once"], first_touch_utm_campaign: ["lead_form_broad", "new contact: written once"], last_touch_utm_source: "meta", last_touch_utm_medium: "paid_social", last_touch_utm_campaign: "lead_form_broad" },
     quiet: "Nothing posted. Personal emails never reach Sales or the model.",
   },
   {
     email: "info@stealth-co.example", route: "review", what: "Blocked site: human review",
     form: { utm_source: "google", utm_medium: "cpc", utm_campaign: "cpc_martech", message: "Info please" },
     domain: "stealth-co.example",
-    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Manual Review"],
-    trace: ["Form arrives with email, message and UTMs.", "Domain stealth-co.example.", "Corporate domain: continue.", "New contact (alwaysOutputData=true).", "HTTP 403. The node continues on error, so the lead is not lost.", "No page text and a two-word message: confidence 62.", "Parsed once with safe defaults (confidence_score=62).", "62 is under 80: no automatic routing.", "Held in needs_human_review with all UTM attribution preserved."],
+    path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Corporate Email", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Manual Review"],
+    trace: ["Form arrives with email, message and UTMs.", "Domain stealth-co.example.", "New contact (alwaysOutputData=true).", "No owner: continue.", "Corporate domain: continue.", "HTTP 403. The node continues on error, so the lead is not lost.", "No page text and a two-word message: confidence 62.", "Parsed once with safe defaults (confidence_score=62).", "62 is under 80: no automatic routing.", "Held in needs_human_review with all UTM attribution preserved."],
     values: { ai_confidence_score: "62", ai_icp_reasoning: "Website unreachable (HTTP 403) and 2-word message lacks context.", first_touch_utm_source: ["google", "new contact: written once"], first_touch_utm_medium: ["cpc", "new contact: written once"], first_touch_utm_campaign: ["cpc_martech", "new contact: written once"], last_touch_utm_source: "google", last_touch_utm_medium: "cpc", last_touch_utm_campaign: "cpc_martech" },
     quiet: "Nothing posted. The lead waits in the HubSpot list needs_human_review, which Ops clears every morning.",
   },
@@ -370,9 +380,9 @@ const LEADS = [
     email: "growth@velasca.com", route: "alert", what: "HubSpot returns 429",
     form: { utm_source: "linkedin", utm_medium: "paid_social", utm_campaign: "eu_crm_audit_q2", message: "Looking to restructure Klaviyo win-back and VIP discount exclusion flows." },
     domain: "velasca.com",
-    path: ["Webhook", "Normalize", "Corporate Email", "Search Existing", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Switch", "Upsert Tier 1", "Error Trigger", "martech-alerts"],
+    path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Corporate Email", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Switch", "Upsert Tier 1", "Error Trigger", "martech-alerts"],
     fail: "Upsert Tier 1",
-    trace: ["Same Velasca lead.", "Domain velasca.com.", "Corporate domain: continue.", "No contact yet.", "velasca.com answers.", "Tier 1, confidence 92.", "Parsed cleanly.", "Route automatically.", "Tier 1 branch.", "HubSpot answers 429. This node does not continue on error, so the run fails.", "Standalone error-notifier.n8n.json catches the failed run.", "Ops is told which workflow & node failed and why."],
+    trace: ["Same Velasca lead.", "Domain velasca.com.", "No contact yet.", "No owner: continue.", "Corporate domain: continue.", "velasca.com answers.", "Tier 1, confidence 92.", "Parsed cleanly.", "Route automatically.", "Tier 1 branch.", "HubSpot answers 429. This node does not continue on error, so the run fails.", "Standalone error-notifier.n8n.json catches the failed run.", "Ops is told which workflow & node failed and why."],
     values: {},
     none: "Nothing written: the run stopped at the upsert. Ops replays it from n8n's execution history once HubSpot recovers.",
     error: "Request failed with status code 429",
@@ -452,6 +462,8 @@ function slackText(template, l) {
     : /confidence_score/.test(x) ? String(v.ai_confidence_score ?? 92)
     : /\.reasoning/.test(x) ? v.ai_icp_reasoning
     : /personalized_hook/.test(x) ? v.ai_personalized_hook
+    : /hubspot_owner_id/.test(x) ? (l.owner || "...")
+    : /json\.message\b/.test(x) ? l.form.message
     : /\.domain\b/.test(x) ? l.domain
     : /\.email\b/.test(x) ? l.email
     : /utm_source/.test(x) ? l.form.utm_source
@@ -481,7 +493,7 @@ function renderSlack(l) {
 const NODE_W = 84;
 function shortName(name) {
   const i = name.indexOf(": ");
-  return clean((i > -1 ? name.slice(i + 2) : name).replace(/\s*\((JSON|Self-Serve|Safe Defaults|Preserve First-Touch UTMs?)\)/, ""));
+  return clean((i > -1 ? name.slice(i + 2) : name).replace(/\s*\((JSON|Self-Serve|Safe Defaults|Preserve First-Touch UTMs?|Owned Contact|Returning Lead)\)/, ""));
 }
 function typeLabel(n) {
   const t = n.type.split(".").pop();
@@ -494,7 +506,7 @@ function drawGraph() {
   const xs = nodes.map((n) => n.position[0]), ys = nodes.map((n) => n.position[1]);
   const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
   const pad = 26;
-  const width = Math.max(canvas.parentElement.clientWidth, 1100);
+  const width = Math.max(canvas.parentElement.clientWidth, 1200);
   const s = (width - 2 * pad - NODE_W) / (maxX - minX);
   const height = Math.round((maxY - minY) * s + 2 * pad + 90);
   canvas.style.width = width + "px";
@@ -640,7 +652,7 @@ function drawCases(rows) {
     const r = rows.find((x) => x.case_id === chip.dataset.id);
     const group = chip.closest(".group");
     group.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c === chip)));
-    group.querySelector(".case-detail").innerHTML = `<span class="q">${esc(r.company)} (${esc(r.domain)}): "${esc(r.sample_inbound_intent)}"</span><span class="m">${esc(r.expected_icp_tier)}, tests: ${esc(r.guardrail_tested.replace(/->/g, "to"))}</span>`;
+    group.querySelector(".case-detail").innerHTML = `<span class="q">${esc(r.company)} (${esc(r.domain)}), invented test message: "${esc(r.sample_inbound_intent)}"</span><span class="m">${esc(r.expected_icp_tier)}, tests: ${esc(r.guardrail_tested.replace(/->/g, "to"))}</span>`;
   });
 }
 
