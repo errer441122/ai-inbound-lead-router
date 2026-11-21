@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Check the qualification parser on missing or inconsistent evidence
+        run: node tests/qualification-parser.mjs
       - name: Verify n8n workflow blueprints, n8n 2.48+ schema fixes, and 30-case benchmark CSV
         run: |
           python3 - <<'PY'

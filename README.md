@@ -10,6 +10,13 @@ A visual **n8n + HubSpot + LLM** workflow that turns raw inbound form submission
 
 ---
 
+**Tested in n8n 2.48.7.** In 12 synthetic routing scenarios, the corrected
+workflow produced all 12 expected destinations. A failed site lookup, a missing
+or unknown tier, and a confidence score outside 0–100 previously let four
+contacts through. The parser now sends all four to human review. The run used
+a manual trigger and test doubles for the website, the model, HubSpot and
+Slack. [See the cases and observed routes](docs/routing-verification.md).
+
 ## The Business Problem
 
 In most B2B and e-commerce growth teams, inbound forms dump unverified leads straight into the CRM:

@@ -33,7 +33,7 @@
 
 ## 3. Failure & Incident Playbook
 
-- **Website returns 403 / times out:** `HTTP: Fetch Public Homepage Context` has `continueOnFail = true`. The prompt instructs the model to set `confidence_score` below 75, which routes the contact to `needs_human_review`: the lead is not lost.
+- **Website fetch fails or returns no readable text:** the parser checks the fetch result before accepting the model's tier. It sends the record to review if the fetch failed, the excerpt is empty, the tier is unknown, or the confidence score is missing, non-integer or outside 0–100. Read `ai_icp_reasoning` for the reason. A page with readable but misleading text still needs human judgment.
 - **AI provider rate limit (429) or outage:** the AI node also has `continueOnFail = true`, so the run does not stop: the parser reads the score as 0 and the lead goes to `needs_human_review`. Check the review list for a sudden spike.
 - **HubSpot or Slack returns an error:** these nodes do not continue on error, so the run fails and the standalone Error Notifier posts the failed node and the error to `#martech-alerts`. Ops replays the execution from n8n's execution history once the service recovers.
 - **Returning contact submits the form:** `HubSpot: Search Existing Contact` runs first. If the contact has an owner, only the last-touch UTMs change and the owner is told in Slack; otherwise first touch is kept and the lead is scored again. See the [Field Ownership Matrix](field-ownership-matrix.md).
