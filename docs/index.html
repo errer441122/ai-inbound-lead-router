@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>AI Inbound Lead Router: interactive walkthrough</title>
-<meta name="description" content="Run six example leads through an n8n workflow drawn from its own file: owner check, free-email filter, HubSpot field ownership, AI confidence gate and failure alerts.">
+<meta name="description" content="Automatically sort incoming website leads, filter personal emails, score company fit with AI, and update HubSpot without overwriting Sales data.">
 <link rel="preload" href="fonts/geist-sans-600.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 @font-face { font-family: "Geist"; src: url("fonts/geist-sans-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
@@ -44,28 +44,39 @@ code, .mono { font-family: var(--mono); font-size: .9em; }
 .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
 h1, h2, h3 { font-weight: 600; letter-spacing: -0.025em; margin: 0; }
 h2 { font-size: clamp(24px, 2.6vw, 32px); line-height: 1.15; }
-.sub2 { color: var(--muted); max-width: 62ch; margin: 10px 0 0; }
+.sub2 { color: var(--muted); max-width: 64ch; margin: 10px 0 0; }
 
 /* nav */
 .nav { border-bottom: 1px solid var(--line); }
-.nav .wrap { display: flex; align-items: center; gap: 28px; height: 60px; }
+.nav .wrap { display: flex; align-items: center; gap: 22px; height: 60px; }
 .brand { font-family: var(--mono); font-size: 14px; text-decoration: none; white-space: nowrap; }
 .brand b { font-weight: 400; color: var(--accent); }
-.nav-links { display: flex; gap: 22px; margin-left: auto; font-size: 14px; white-space: nowrap; }
+.nav-links { display: flex; gap: 20px; margin-left: auto; font-size: 14px; white-space: nowrap; align-items: center; }
 .nav-links a { text-decoration: none; color: var(--ink-2); }
 .nav-links a:hover { color: var(--accent); }
+.lang-switch { display: inline-flex; background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r); padding: 2px; gap: 2px; flex-shrink: 0; }
+.lang-switch button { font: 600 12px var(--mono); color: var(--muted); background: none; border: 0; border-radius: 4px; padding: 4px 9px; cursor: pointer; transition: background-color .15s, color .15s; }
+.lang-switch button:hover { color: var(--ink); }
+.lang-switch button[aria-pressed="true"] { background: var(--panel); color: var(--accent); box-shadow: 0 1px 2px rgb(24 24 27 / .12); }
 
 /* hero */
-.hero { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 56px; padding-top: 64px; padding-bottom: 40px; align-items: end; }
-.eyebrow { font-family: var(--mono); font-size: 13px; color: var(--accent); margin: 0 0 18px; }
-h1 { font-size: clamp(34px, 3.9vw, 50px); line-height: 1.04; letter-spacing: -0.04em; max-width: 19em; }
-.lede { font-size: 18px; color: var(--ink-2); max-width: 46ch; margin: 20px 0 30px; }
+.hero { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 56px; padding-top: 56px; padding-bottom: 32px; align-items: end; }
+.eyebrow { font-family: var(--mono); font-size: 13px; color: var(--accent); margin: 0 0 16px; }
+h1 { font-size: clamp(32px, 3.7vw, 48px); line-height: 1.06; letter-spacing: -0.04em; max-width: 21em; }
+.lede { font-size: 17.5px; color: var(--ink-2); max-width: 49ch; margin: 18px 0 28px; }
 .ctas { display: flex; flex-wrap: wrap; gap: 12px; }
 .btn { display: inline-flex; align-items: center; gap: 10px; height: 46px; padding: 0 20px; border-radius: var(--r); font: 600 15px var(--sans); text-decoration: none; white-space: nowrap; border: 1px solid var(--ink); background: var(--ink); color: var(--page); cursor: pointer; transition: transform .2s cubic-bezier(.16,1,.3,1), background .2s; }
 .btn:hover { color: var(--page); background: var(--accent); border-color: var(--accent); }
 .btn:active { transform: translateY(1px) scale(.99); }
 .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
 .btn.ghost:hover { color: var(--accent); border-color: var(--accent); background: transparent; }
+
+/* at-a-glance 3-step purpose strip */
+.glance { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; margin-bottom: 24px; }
+.gl-step { background: var(--panel); padding: 16px 20px; }
+.gl-step .k { display: block; font: 12px var(--mono); color: var(--accent); margin-bottom: 4px; }
+.gl-step b { display: block; font-size: 15.5px; margin-bottom: 4px; }
+.gl-step p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.48; }
 
 .picker { border: 1px solid var(--line); border-radius: var(--r); background: var(--panel); box-shadow: var(--shadow); }
 .picker-h { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 16px 10px; border-bottom: 1px solid var(--line-soft); }
@@ -195,18 +206,19 @@ footer a { color: var(--ink-2); text-decoration: none; }
 footer a:hover { color: var(--accent); }
 
 @media (max-width: 1000px) {
-  .hero { grid-template-columns: minmax(0, 1fr); gap: 36px; padding-top: 44px; }
+  .hero { grid-template-columns: minmax(0, 1fr); gap: 36px; padding-top: 40px; }
   .result, .fields, .setup { grid-template-columns: minmax(0, 1fr); gap: 36px; }
   .nav-links .proj { display: none; }
 }
 @media (max-width: 720px) {
   .wrap { padding-left: 16px; padding-right: 16px; }
+  .glance { grid-template-columns: minmax(0, 1fr); }
   .cases { grid-template-columns: minmax(0, 1fr); }
   .writes td:first-child { white-space: normal; overflow-wrap: anywhere; width: 44%; padding-right: 12px; }
   .writes .tag { display: block; margin: 2px 0 0; white-space: normal; }
   .fail { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   section.band { padding-top: 64px; }
-  .lede { font-size: 17px; }
+  .lede { font-size: 16.5px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation: none !important; }
@@ -217,100 +229,112 @@ footer a:hover { color: var(--accent); }
 <header class="nav"><div class="wrap">
   <a class="brand" href="#top">lead<b>/</b>router</a>
   <nav class="nav-links" aria-label="Projects">
-    <a class="proj" href="https://errer441122.github.io/ai-visibility-audit-geo/">GEO audit</a>
-    <a class="proj" href="https://errer441122.github.io/cx-crm-promo-guard/">CX promo guard</a>
-    <a class="proj" href="https://errer441122.github.io/lifecycle-automation-lab/">CRM pre-send QA</a>
-    <a href="https://github.com/errer441122/ai-inbound-lead-router">GitHub repo</a>
+    <a class="proj" href="https://errer441122.github.io/ai-visibility-audit-geo/" data-i18n="nav_geo">GEO audit</a>
+    <a class="proj" href="https://errer441122.github.io/cx-crm-promo-guard/" data-i18n="nav_cx">CX promo guard</a>
+    <a class="proj" href="https://errer441122.github.io/lifecycle-automation-lab/" data-i18n="nav_qa">CRM pre-send QA</a>
+    <a href="https://github.com/errer441122/ai-inbound-lead-router" data-i18n="nav_repo">GitHub repo</a>
   </nav>
+  <div class="lang-switch" role="group" aria-label="Language">
+    <button type="button" data-lang="en" aria-pressed="true">EN</button>
+    <button type="button" data-lang="it" aria-pressed="false">IT</button>
+  </div>
 </div></header>
 
 <main id="top">
   <section class="wrap hero">
     <div>
-      <p class="eyebrow">inbound lead routing</p>
-      <h1>Leads scored and routed without breaking HubSpot.</h1>
-      <p class="lede">An n8n workflow that leaves Sales-owned contacts alone, filters free emails before any AI call and holds uncertain leads for review.</p>
+      <p class="eyebrow" data-i18n="hero_eyebrow">automated lead sorting · n8n + HubSpot + AI</p>
+      <h1 data-i18n="hero_h1">Sort incoming website leads automatically and send only qualified ones to Sales.</h1>
+      <p class="lede" data-i18n="hero_lede">Every time someone fills out your contact form, this system checks if Sales already knows them, filters personal Gmail spam, scores company fit with AI, and updates HubSpot without overwriting existing rep or campaign data.</p>
       <div class="ctas">
-        <a class="btn" href="#walkthrough">Run a lead through it</a>
-        <a class="btn ghost" id="dl" href="https://raw.githubusercontent.com/errer441122/ai-inbound-lead-router/main/workflows/ai-inbound-lead-router.n8n.json" download="ai-inbound-lead-router.n8n.json">Download the workflow</a>
+        <a class="btn" href="#walkthrough" data-i18n="hero_cta1">Try a lead example</a>
+        <a class="btn ghost" id="dl" href="https://raw.githubusercontent.com/errer441122/ai-inbound-lead-router/main/workflows/ai-inbound-lead-router.n8n.json" download="ai-inbound-lead-router.n8n.json" data-i18n="hero_cta2">Download the workflow</a>
       </div>
     </div>
     <div class="picker" id="walkthrough">
-      <div class="picker-h"><span id="pick-label">Pick a lead</span><small>6 examples</small></div>
+      <div class="picker-h"><span id="pick-label" data-i18n="pick_label">Pick a lead example</span><small data-i18n="pick_sub">6 scenarios</small></div>
       <div id="leads" role="radiogroup" aria-labelledby="pick-label"></div>
+    </div>
+  </section>
+
+  <section class="wrap" aria-label="How it works at a glance">
+    <div class="glance">
+      <div class="gl-step"><span class="k" data-i18n="gl1_k">01 · form submitted</span><b data-i18n="gl1_b">A new contact arrives from the site</b><p data-i18n="gl1_p">Captures email, message and which ad campaign (UTM) brought them in.</p></div>
+      <div class="gl-step"><span class="k" data-i18n="gl2_k">02 · smart filters + AI score</span><b data-i18n="gl2_b">Cleans noise before calling AI</b><p data-i18n="gl2_p">Skips Sales-owned contacts and free Gmail addresses (€0 AI cost); checks the company website and requires ≥80% AI confidence.</p></div>
+      <div class="gl-step"><span class="k" data-i18n="gl3_k">03 · routed cleanly</span><b data-i18n="gl3_b">Right place, zero CRM mess</b><p data-i18n="gl3_p">Best leads ping Sales on Slack with a suggested opener; early-stage leads go to Marketing; uncertain ones wait for human review.</p></div>
     </div>
   </section>
 
   <section class="wrap stage" aria-label="The workflow">
     <div class="scroller" id="scroller">
       <div class="canvas" id="canvas">
-        <div class="canvas-msg" id="canvas-msg"><div class="sk" aria-hidden="true"><i></i><i></i><i></i></div>Loading the workflow file...</div>
+        <div class="canvas-msg" id="canvas-msg"><div class="sk" aria-hidden="true"><i></i><i></i><i></i></div><span data-i18n="loading_wf">Loading the workflow file...</span></div>
       </div>
     </div>
-    <p class="note">Drawn from <a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><code>workflows/ai-inbound-lead-router.n8n.json</code></a>. The leads, AI scores and texts are examples. The path, the fields and the Slack text come from the file.</p>
+    <p class="note" data-i18n-html="canvas_note">Drawn directly from <a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><code>workflows/ai-inbound-lead-router.n8n.json</code></a>. The leads, AI scores and texts are examples; the path, HubSpot fields and Slack text come straight from the file.</p>
   </section>
 
   <section class="wrap result" aria-live="polite">
     <div>
-      <h2>What happened</h2>
+      <h2 data-i18n="res_what">What happened step by step</h2>
       <pre class="req" id="req"></pre>
       <ol class="trace" id="trace"></ol>
     </div>
     <div>
-      <h2>Written to HubSpot</h2>
+      <h2 data-i18n="res_hs">Saved in HubSpot</h2>
       <div id="writes"></div>
-      <h2>Posted to Slack</h2>
+      <h2 data-i18n="res_sl">Sent to Slack</h2>
       <div id="slack"></div>
     </div>
   </section>
 
   <section class="wrap band" id="fields">
-    <h2>Which node may change which field</h2>
-    <p class="sub2">Read from the workflow file. A returning lead never loses its first campaign, and the fields Sales owns are never written.</p>
+    <h2 data-i18n="fld_h2">Which step may change which CRM field</h2>
+    <p class="sub2" data-i18n="fld_sub">Read directly from the workflow file. A returning contact never loses their original campaign, and fields owned by Sales are never overwritten.</p>
     <div class="fields">
       <ul class="rules">
-        <li><b>Owned contacts stay with Sales</b><p>If HubSpot already has an owner, only last touch changes and the owner is told in Slack. No new score, no new route.</p></li>
-        <li><b>First touch is written once</b><p>Every node keeps the value HubSpot already has and only fills it when it is blank.</p></li>
-        <li><b>Last touch refreshes every time</b><p>Every route updates the latest campaign, so reps see what brought the lead back.</p></li>
-        <li><b>Sales fields stay with Sales</b><p>No node writes the lifecycle stage or the contact owner.</p></li>
+        <li><b data-i18n="r1_b">Owned contacts stay with Sales</b><p data-i18n="r1_p">If HubSpot already has a rep assigned, only the latest campaign updates and the rep gets a Slack note. No re-scoring, no re-routing.</p></li>
+        <li><b data-i18n="r2_b">First campaign is locked forever</b><p data-i18n="r2_p">Every step keeps the original first-touch UTM if HubSpot already has one, filling it only when blank.</p></li>
+        <li><b data-i18n="r3_b">Latest campaign updates every time</b><p data-i18n="r3_p">Every route refreshes last-touch UTMs so reps immediately see what brought the contact back.</p></li>
+        <li><b data-i18n="r4_b">Sales stages stay untouched</b><p data-i18n="r4_p">No automation node ever modifies the lifecycle stage or changes the contact owner.</p></li>
       </ul>
-      <div class="matrix-wrap"><table class="matrix" id="matrix"><tbody><tr><td>Loading the workflow file...</td></tr></tbody></table></div>
+      <div class="matrix-wrap"><table class="matrix" id="matrix"><tbody><tr><td data-i18n="loading_wf">Loading the workflow file...</td></tr></tbody></table></div>
     </div>
   </section>
 
   <section class="wrap band" id="cases">
     <p class="eyebrow">data/real-companies-benchmark.csv</p>
-    <h2>30 test cases, each with the route it should take</h2>
-    <p class="sub2">25 real company domains and 5 edge cases. The messages are invented test inputs, and the set has not been run end to end yet: it lists the route each case should take.</p>
-    <div class="cases" id="case-groups"><div class="group">Loading the test cases...</div></div>
-    <p class="note">Estimated model cost: about &euro;0.001-0.002 per corporate lead at gpt-4o-mini or gemini-2.5-flash list prices. Free emails cost nothing: they never reach the model.</p>
+    <h2 data-i18n="cs_h2">30 test cases, each with the route it should take</h2>
+    <p class="sub2" data-i18n="cs_sub">25 real European company domains and 5 edge cases. The messages are sample test inputs documenting the expected route for each category.</p>
+    <div class="cases" id="case-groups"><div class="group" data-i18n="loading_cs">Loading the test cases...</div></div>
+    <p class="note" data-i18n="cs_cost">Estimated AI cost: about €0.001–0.002 per corporate lead at gpt-4o-mini or gemini-2.5-flash list prices. Personal emails cost €0 because they never call the model.</p>
   </section>
 
   <section class="wrap band" id="failures">
-    <h2>When something goes wrong</h2>
+    <h2 data-i18n="fl_h2">What happens when something goes wrong</h2>
     <div class="fails">
-      <div class="fail"><h3>A personal email arrives<small>gmail.com, libero.it, outlook.com, proton.me...</small></h3><p>The corporate-email check stops it before the website fetch and the AI call. The contact is still saved, for self-serve nurture.</p></div>
-      <div class="fail"><h3>The website blocks the fetch<small>HTTP 403 or 8-second timeout</small></h3><p>The request continues on error, so the lead is not lost. Without page text the prompt asks for a score under 75, and the lead goes to human review.</p></div>
-      <div class="fail"><h3>The AI call fails<small>rate limit or outage at the model provider</small></h3><p>This node also continues on error. The score reads as 0, so the lead lands in the review list instead of being routed on a guess.</p></div>
-      <div class="fail"><h3>HubSpot or Slack returns an error<small>for example 429, too many requests</small></h3><p>The run fails and the Error Trigger posts the failed node and the error to <code>#martech-alerts</code>. Ops replays the run from n8n's execution history.</p></div>
-      <div class="fail"><h3>The AI writes an opener for Sales<small>ai_personalized_hook</small></h3><p>It is posted in Slack for a rep to check and saved on the contact. Nothing is emailed to the lead automatically.</p></div>
+      <div class="fail"><h3><span data-i18n="fl1_h">A personal email arrives</span><small>gmail.com, libero.it, outlook.com, proton.me...</small></h3><p data-i18n="fl1_p">The corporate-email check stops it before website lookup and AI scoring. The contact is still saved cleanly for self-serve nurture at €0 AI cost.</p></div>
+      <div class="fail"><h3><span data-i18n="fl2_h">The company website blocks access</span><small data-i18n="fl2_s">HTTP 403 or 8-second timeout</small></h3><p data-i18n="fl2_p">The workflow continues on error so the lead is never lost. Without page text, AI confidence stays under 80 and the lead routes to human review.</p></div>
+      <div class="fail"><h3><span data-i18n="fl3_h">The AI provider fails or times out</span><small data-i18n="fl3_s">rate limit or temporary outage</small></h3><p data-i18n="fl3_p">The Code parser catches the error safely and defaults confidence to 0, routing the lead to manual review instead of guessing.</p></div>
+      <div class="fail"><h3><span data-i18n="fl4_h">HubSpot or Slack returns an error</span><small data-i18n="fl4_s">for example 429, too many requests</small></h3><p data-i18n-html="fl4_p">The standalone Error Workflow posts the failed step and error message to <code>#martech-alerts</code> so Ops can replay the run from n8n history.</p></div>
+      <div class="fail"><h3><span data-i18n="fl5_h">The AI writes a suggested email opener</span><small>ai_personalized_hook</small></h3><p data-i18n="fl5_p">It appears only in Slack for a human rep to check and is saved on the HubSpot contact. Nothing is ever emailed to the prospect automatically.</p></div>
     </div>
   </section>
 
   <section class="wrap band" id="setup">
-    <h2>Set it up in about ten minutes</h2>
+    <h2 data-i18n="st_h2">Set it up in about ten minutes</h2>
     <div class="setup">
       <ol class="steps">
-        <li><b>Import</b><p>In n8n, Workflows, Import from File, and pick the workflow JSON.</p></li>
-        <li><b>Connect</b><p>A HubSpot private app token, an OpenAI or Gemini key and a Slack bot for <code>#inbound-tier1-leads</code> and <code>#martech-alerts</code>.</p></li>
-        <li><b>Test</b><p>Point a form webhook at <code>/inbound-lead-router</code> with hidden UTM fields, send one test lead, check the contact and the alert.</p></li>
+        <li><b data-i18n="st1_b">Import</b><p data-i18n="st1_p">In n8n, open Workflows → Import from File and import both the main workflow and error-notifier.n8n.json.</p></li>
+        <li><b data-i18n="st2_b">Connect</b><p data-i18n-html="st2_p">Add a HubSpot Private App token, an OpenAI or Gemini API key and a Slack bot for <code>#inbound-tier1-leads</code> and <code>#martech-alerts</code>.</p></li>
+        <li><b data-i18n="st3_b">Test</b><p data-i18n-html="st3_p">Point your website form webhook to <code>/inbound-lead-router</code> with hidden UTM fields, send one test lead, and verify HubSpot + Slack.</p></li>
       </ol>
       <ul class="files">
-        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><span class="p">workflows/ai-inbound-lead-router.n8n.json</span><span class="go">open</span><span class="d">The workflow and the standalone error-notifier.n8n.json, ready to import</span></a></li>
-        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/prompts/icp-scoring-prompt.md"><span class="p">prompts/icp-scoring-prompt.md</span><span class="go">open</span><span class="d">ICP rubric, system prompt and JSON contract</span></a></li>
-        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/field-ownership-matrix.md"><span class="p">docs/field-ownership-matrix.md</span><span class="go">open</span><span class="d">Overwrite rules for every HubSpot property</span></a></li>
-        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/sop-inbound-lead-routing.md"><span class="p">docs/sop-inbound-lead-routing.md</span><span class="go">open</span><span class="d">Setup, daily review and incident playbook</span></a></li>
-        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/data/real-companies-benchmark.csv"><span class="p">data/real-companies-benchmark.csv</span><span class="go">open</span><span class="d">30 test cases: real domains, invented messages, expected routes</span></a></li>
+        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><span class="p">workflows/ai-inbound-lead-router.n8n.json</span><span class="go" data-i18n="open">open</span><span class="d" data-i18n="f1_d">The workflow and standalone error-notifier.n8n.json, ready to import</span></a></li>
+        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/prompts/icp-scoring-prompt.md"><span class="p">prompts/icp-scoring-prompt.md</span><span class="go" data-i18n="open">open</span><span class="d" data-i18n="f2_d">ICP scoring criteria, system prompt and JSON output contract</span></a></li>
+        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/field-ownership-matrix.md"><span class="p">docs/field-ownership-matrix.md</span><span class="go" data-i18n="open">open</span><span class="d" data-i18n="f3_d">Overwrite rules for every HubSpot contact property</span></a></li>
+        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/sop-inbound-lead-routing.md"><span class="p">docs/sop-inbound-lead-routing.md</span><span class="go" data-i18n="open">open</span><span class="d" data-i18n="f4_d">Setup checklist, daily Ops routine and incident playbook</span></a></li>
+        <li><a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/data/real-companies-benchmark.csv"><span class="p">data/real-companies-benchmark.csv</span><span class="go" data-i18n="open">open</span><span class="d" data-i18n="f5_d">30 test cases: real company domains, sample intents, expected routes</span></a></li>
       </ul>
     </div>
   </section>
@@ -318,9 +342,9 @@ footer a:hover { color: var(--accent); }
 
 <footer><div class="wrap">
   <span class="who">Riccardo Capanna</span>
-  <a href="https://errer441122.github.io/ai-visibility-audit-geo/">GEO audit</a>
-  <a href="https://errer441122.github.io/cx-crm-promo-guard/">CX promo guard</a>
-  <a href="https://errer441122.github.io/lifecycle-automation-lab/">CRM pre-send QA</a>
+  <a href="https://errer441122.github.io/ai-visibility-audit-geo/" data-i18n="nav_geo">GEO audit</a>
+  <a href="https://errer441122.github.io/cx-crm-promo-guard/" data-i18n="nav_cx">CX promo guard</a>
+  <a href="https://errer441122.github.io/lifecycle-automation-lab/" data-i18n="nav_qa">CRM pre-send QA</a>
   <a href="https://github.com/errer441122">GitHub</a>
   <a href="https://www.linkedin.com/in/riccardo-capanna-039a43415/">LinkedIn</a>
 </div></footer>
@@ -330,61 +354,181 @@ const BASE = location.hostname.endsWith("github.io")
   ? "https://raw.githubusercontent.com/errer441122/ai-inbound-lead-router/main/"
   : "../";
 
-// Example leads. Keywords pick nodes out of the workflow file by name.
+const I18N = {
+  en: {
+    page_title: "AI Inbound Lead Router: interactive walkthrough",
+    nav_geo: "GEO audit", nav_cx: "CX promo guard", nav_qa: "CRM pre-send QA", nav_repo: "GitHub repo",
+    hero_eyebrow: "automated lead sorting · n8n + HubSpot + AI",
+    hero_h1: "Sort incoming website leads automatically and send only qualified ones to Sales.",
+    hero_lede: "Every time someone fills out your contact form, this system checks if Sales already knows them, filters personal Gmail spam, scores company fit with AI, and updates HubSpot without overwriting existing rep or campaign data.",
+    hero_cta1: "Try a lead example", hero_cta2: "Download the workflow",
+    pick_label: "Pick a lead example", pick_sub: "6 scenarios",
+    gl1_k: "01 · form submitted", gl1_b: "A new contact arrives from the site", gl1_p: "Captures email, message and which ad campaign (UTM) brought them in.",
+    gl2_k: "02 · smart filters + AI score", gl2_b: "Cleans noise before calling AI", gl2_p: "Skips Sales-owned contacts and free Gmail addresses (€0 AI cost); checks the company website and requires ≥80% AI confidence.",
+    gl3_k: "03 · routed cleanly", gl3_b: "Right place, zero CRM mess", gl3_p: "Best leads ping Sales on Slack with a suggested opener; early-stage leads go to Marketing; uncertain ones wait for human review.",
+    loading_wf: "Loading the workflow file...", loading_cs: "Loading the test cases...",
+    canvas_note: 'Drawn directly from <a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><code>workflows/ai-inbound-lead-router.n8n.json</code></a>. The leads, AI scores and texts are examples; the path, HubSpot fields and Slack text come straight from the file.',
+    res_what: "What happened step by step", res_hs: "Saved in HubSpot", res_sl: "Sent to Slack",
+    fld_h2: "Which step may change which CRM field",
+    fld_sub: "Read directly from the workflow file. A returning contact never loses their original campaign, and fields owned by Sales are never overwritten.",
+    r1_b: "Owned contacts stay with Sales", r1_p: "If HubSpot already has a rep assigned, only the latest campaign updates and the rep gets a Slack note. No re-scoring, no re-routing.",
+    r2_b: "First campaign is locked forever", r2_p: "Every step keeps the original first-touch UTM if HubSpot already has one, filling it only when blank.",
+    r3_b: "Latest campaign updates every time", r3_p: "Every route refreshes last-touch UTMs so reps immediately see what brought the contact back.",
+    r4_b: "Sales stages stay untouched", r4_p: "No automation node ever modifies the lifecycle stage or changes the contact owner.",
+    cs_h2: "30 test cases, each with the route it should take",
+    cs_sub: "25 real European company domains and 5 edge cases. The messages are sample test inputs documenting the expected route for each category.",
+    cs_cost: "Estimated AI cost: about €0.001–0.002 per corporate lead at gpt-4o-mini or gemini-2.5-flash list prices. Personal emails cost €0 because they never call the model.",
+    fl_h2: "What happens when something goes wrong",
+    fl1_h: "A personal email arrives", fl1_p: "The corporate-email check stops it before website lookup and AI scoring. The contact is still saved cleanly for self-serve nurture at €0 AI cost.",
+    fl2_h: "The company website blocks access", fl2_s: "HTTP 403 or 8-second timeout", fl2_p: "The workflow continues on error so the lead is never lost. Without page text, AI confidence stays under 80 and the lead routes to human review.",
+    fl3_h: "The AI provider fails or times out", fl3_s: "rate limit or temporary outage", fl3_p: "The Code parser catches the error safely and defaults confidence to 0, routing the lead to manual review instead of guessing.",
+    fl4_h: "HubSpot or Slack returns an error", fl4_s: "for example 429, too many requests", fl4_p: "The standalone Error Workflow posts the failed step and error message to <code>#martech-alerts</code> so Ops can replay the run from n8n history.",
+    fl5_h: "The AI writes a suggested email opener", fl5_p: "It appears only in Slack for a human rep to check and is saved on the HubSpot contact. Nothing is ever emailed to the prospect automatically.",
+    st_h2: "Set it up in about ten minutes",
+    st1_b: "Import", st1_p: "In n8n, open Workflows → Import from File and import both the main workflow and error-notifier.n8n.json.",
+    st2_b: "Connect", st2_p: "Add a HubSpot Private App token, an OpenAI or Gemini API key and a Slack bot for <code>#inbound-tier1-leads</code> and <code>#martech-alerts</code>.",
+    st3_b: "Test", st3_p: "Point your website form webhook to <code>/inbound-lead-router</code> with hidden UTM fields, send one test lead, and verify HubSpot + Slack.",
+    open: "open",
+    f1_d: "The workflow and standalone error-notifier.n8n.json, ready to import",
+    f2_d: "ICP scoring criteria, system prompt and JSON output contract",
+    f3_d: "Overwrite rules for every HubSpot contact property",
+    f4_d: "Setup checklist, daily Ops routine and incident playbook",
+    f5_d: "30 test cases: real company domains, sample intents, expected routes",
+    tag_match: "match key", tag_unchanged: "unchanged", tag_new: "new contact: written once", tag_kept: "kept from existing",
+    from_run: "(from the run)",
+    slack_aside: "The opener is for the rep to review first. Nothing is emailed automatically.",
+    slack_unloaded: "The message text is read from the workflow file, which has not loaded.",
+    mat_prop: "Property", mat_once: "only if blank", mat_writes: "writes", mat_never: "never written by any node",
+    edge_yes: "yes", edge_no: "no",
+    chip_msg_lbl: "sample test message:", chip_tests_lbl: "tests:",
+    routes: [
+      ["sales_fast_track", "Sales fast track", "Saved in HubSpot + instant Slack alert to Sales"],
+      ["marketing_nurture", "Marketing nurture", "Saved for nurture; Sales is not interrupted"],
+      ["self_serve_nurture", "Free email filter", "Stopped before any AI call (€0 API cost)"],
+      ["needs_human_review", "Human review", "Held for Ops review, zero AI guessing"],
+    ],
+    route_tag: { sales: "sales", nurture: "nurture", owner: "owned", "self-serve": "self-serve", review: "review", alert: "alert" },
+    leads_text: [
+      { what: "Tier 1: instant alert for Sales", trace: ["Form arrives with email, message and UTMs.", "Domain velasca.com, UTMs lowercased.", "No contact yet (alwaysOutputData=true keeps new leads flowing).", "No owner: the workflow may score and route.", "Corporate domain: continue.", "velasca.com answers; public text goes to the model.", "gpt-4o-mini (temp 0.1, JSON): Tier 1, confidence 92.", "Code node parses JSON once safely (confidence 92).", "92 ≥ 80: safe to route automatically.", "Tier 1 branch.", "First touch locked once, last touch and ICP fields saved.", "Slack alert posted for a Sales rep to follow up."] },
+      { what: "Tier 2: first campaign kept intact", trace: ["Form arrives with email, message and UTMs.", "Domain satispay.com.", "Existing contact found: original first_touch_utm_* will be kept.", "No rep assigned yet: score and route.", "Corporate domain: continue.", "satispay.com answers.", "Tier 2, confidence 88: research download, no buying intent yet.", "Code node parses JSON safely (confidence 88).", "88 ≥ 80: route automatically.", "Tier 2 branch.", "Original first_touch_utm_* kept; last_touch_utm_* refreshed."], quiet: "Nothing posted on Slack. Early-stage leads go to Marketing nurture without interrupting Sales." },
+      { what: "Already followed by Sales: left untouched", trace: ["Form arrives with email, message and UTMs.", "Domain tannico.it.", "Contact found, with an owner already assigned in HubSpot.", "Owner exists: Sales is already working this lead.", "Only the three last-touch UTMs refresh.", "The assigned rep gets a quick Slack heads-up. Zero AI call, zero re-routing."] },
+      { what: "Personal Gmail: zero AI spend", trace: ["Form arrives with email, message and UTMs.", "Domain gmail.com.", "No contact yet.", "No owner: continue.", "gmail.com is on the free-email list: stop here.", "Saved for self-serve nurture (first & last UTMs). No website fetch, no AI call."], quiet: "Nothing posted on Slack. Personal emails never interrupt Sales or spend AI credits." },
+      { what: "Blocked website: held for human review", trace: ["Form arrives with email, message and UTMs.", "Domain stealth-co.example.", "New contact (alwaysOutputData=true).", "No owner: continue.", "Corporate domain: continue.", "HTTP 403. Node continues on error so the lead is not lost.", "No page text and a 2-word message: confidence 62.", "Code node parses JSON safely (confidence 62).", "62 < 80: blocked from automatic routing.", "Saved to needs_human_review with full UTM attribution."], quiet: "Nothing posted on Sales Slack. Contact waits safely in HubSpot's needs_human_review list for morning Ops triage." },
+      { what: "HubSpot returns 429 error", trace: ["Same Velasca lead.", "Domain velasca.com.", "No contact yet.", "No owner: continue.", "Corporate domain: continue.", "velasca.com answers.", "Tier 1, confidence 92.", "Parsed cleanly.", "Route automatically.", "Tier 1 branch.", "HubSpot answers 429. This node stops on error, failing the run.", "Standalone error-notifier.n8n.json catches the failure.", "Ops receives the failed node and error message in #martech-alerts."], none: "Nothing written: the run stopped at the HubSpot write. Ops replays it from n8n history once HubSpot recovers." },
+    ],
+  },
+  it: {
+    page_title: "AI Inbound Lead Router: guida interattiva",
+    nav_geo: "Audit GEO", nav_cx: "Pausa promo CX", nav_qa: "Controllo email QA", nav_repo: "Repo GitHub",
+    hero_eyebrow: "smistamento automatico lead · n8n + HubSpot + AI",
+    hero_h1: "Smista in automatico i contatti dal sito e manda ai venditori solo quelli giusti.",
+    hero_lede: "Ogni volta che qualcuno compila il form sul sito, questo sistema controlla se è già seguito da un venditore, filtra le email personali (Gmail/Libero), valuta l'azienda con l'AI e aggiorna HubSpot senza sovrascrivere i dati già esistenti.",
+    hero_cta1: "Prova un esempio", hero_cta2: "Scarica il workflow",
+    pick_label: "Scegli un contatto di esempio", pick_sub: "6 scenari",
+    gl1_k: "01 · compilazione form", gl1_b: "Arriva un nuovo contatto dal sito", gl1_p: "Raccoglie email, messaggio e campagna pubblicitaria (UTM) di provenienza.",
+    gl2_k: "02 · filtri smart + voto AI", gl2_b: "Pulisce il rumore prima dell'AI", gl2_p: "Salta contatti già assegnati ai venditori ed email personali (costo AI €0); legge il sito aziendale e richiede fiducia AI ≥80%.",
+    gl3_k: "03 · instradamento pulito", gl3_b: "Posto giusto, zero caos nel CRM", gl3_p: "I migliori contatti avvisano subito i venditori su Slack con una frase di apertura; gli altri vanno al Marketing o a revisione umana.",
+    loading_wf: "Caricamento file workflow...", loading_cs: "Caricamento casi di test...",
+    canvas_note: 'Disegnato direttamente da <a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><code>workflows/ai-inbound-lead-router.n8n.json</code></a>. I contatti e i punteggi sono esempi; percorso, campi HubSpot e testo Slack arrivano direttamente dal file.',
+    res_what: "Cosa è successo passo per passo", res_hs: "Salvato in HubSpot", res_sl: "Inviato su Slack",
+    fld_h2: "Quale passaggio può modificare quale campo del CRM",
+    fld_sub: "Letto direttamente dal workflow. Un contatto che torna dal sito non perde mai la prima campagna originale e i campi gestiti dai venditori non vengono mai sovrascritti.",
+    r1_b: "I contatti già assegnati restano ai venditori", r1_p: "Se HubSpot ha già un commerciale assegnato, si aggiorna solo l'ultima campagna e il venditore riceve un avviso su Slack. Nessun ricalcolo AI.",
+    r2_b: "La prima campagna resta bloccata", r2_p: "Ogni nodo mantiene la prima campagna UTM se esiste già in HubSpot, scrivendola solo quando il campo è vuoto.",
+    r3_b: "L'ultima campagna si aggiorna sempre", r3_p: "Ogni percorso aggiorna gli UTM più recenti così il team vede subito cosa ha riportato il contatto sul sito.",
+    r4_b: "Le fasi commerciali non si toccano", r4_p: "Nessun nodo dell'automazione modifica mai lo stato trattativa (lifecycle stage) né cambia il venditore assegnato.",
+    cs_h2: "30 casi di test con il percorso atteso per ciascuno",
+    cs_sub: "25 domini reali di aziende europee e 5 casi limite. I messaggi sono esempi di test per documentare il percorso atteso per ogni categoria.",
+    cs_cost: "Costo AI stimato: circa €0,001–0,002 per lead aziendale ai prezzi di gpt-4o-mini o gemini-2.5-flash. Le email personali costano €0 perché non chiamano l'AI.",
+    fl_h2: "Cosa succede quando qualcosa va storto",
+    fl1_h: "Arriva un'email personale", fl1_p: "Il filtro aziendale la blocca prima di leggere il sito o chiamare l'AI. Il contatto viene comunque salvato per il percorso self-serve a costo AI €0.",
+    fl2_h: "Il sito aziendale blocca l'accesso", fl2_s: "errore HTTP 403 o timeout di 8 secondi", fl2_p: "Il flusso continua senza perdere il contatto. Senza testo del sito la fiducia AI resta sotto 80 e il contatto passa a revisione umana.",
+    fl3_h: "Il provider AI va in errore o timeout", fl3_s: "limite richieste o disservizio temporaneo", fl3_p: "Il nodo Code intercetta l'errore e imposta la fiducia a 0: il contatto va in coda di revisione invece di essere smistato a caso.",
+    fl4_h: "HubSpot o Slack restituiscono errore", fl4_s: "esempio errore 429, troppe richieste", fl4_p: "Il workflow separato Error Notifier segnala nodo ed errore su <code>#martech-alerts</code> così il team può rieseguire il contatto dallo storico di n8n.",
+    fl5_h: "L'AI propone una frase di apertura", fl5_p: "Compare solo su Slack per il venditore ed è salvata in HubSpot. Non viene mai spedita nessuna email automatica al cliente senza controllo umano.",
+    st_h2: "Configurazione in circa dieci minuti",
+    st1_b: "Importa", st1_p: "In n8n apri Workflows → Import from File e importa sia il flusso principale sia error-notifier.n8n.json.",
+    st2_b: "Collega", st2_p: "Inserisci il token Private App di HubSpot, una chiave OpenAI o Gemini e un bot Slack per <code>#inbound-tier1-leads</code> e <code>#martech-alerts</code>.",
+    st3_b: "Testa", st3_p: "Collega il form del sito al webhook <code>/inbound-lead-router</code> passando i campi UTM, invia un test e verifica HubSpot + Slack.",
+    open: "apri",
+    f1_d: "Workflow principale + error-notifier.n8n.json separato, pronti da importare",
+    f2_d: "Criteri di qualifica ICP, prompt di sistema e contratto JSON",
+    f3_d: "Regole di sovrascrittura per ogni campo contatto in HubSpot",
+    f4_d: "Guida al setup, routine giornaliera e gestione errori",
+    f5_d: "30 casi di test: domini aziendali reali, messaggi di esempio, percorsi attesi",
+    tag_match: "chiave email", tag_unchanged: "invariato", tag_new: "nuovo contatto: scritto 1 volta", tag_kept: "mantenuto dal CRM",
+    from_run: "(dal flusso)",
+    slack_aside: "La frase di apertura va rivista dal venditore. Nessuna email parte in automatico.",
+    slack_unloaded: "Il testo del messaggio viene letto dal file workflow, non ancora caricato.",
+    mat_prop: "Campo HubSpot", mat_once: "solo se vuoto", mat_writes: "scrive", mat_never: "mai scritto da nessun nodo",
+    edge_yes: "sì", edge_no: "no",
+    chip_msg_lbl: "messaggio di test:", chip_tests_lbl: "verifica:",
+    routes: [
+      ["sales_fast_track", "Corsia veloce Vendite", "Salvato in HubSpot + avviso immediato su Slack"],
+      ["marketing_nurture", "Nurture Marketing", "Salvato per il Marketing senza disturbare i venditori"],
+      ["self_serve_nurture", "Filtro email personali", "Fermato prima dell'AI (€0 spesi)"],
+      ["needs_human_review", "Revisione umana", "Fermato per verifica Ops, zero ipotesi AI"],
+    ],
+    route_tag: { sales: "vendite", nurture: "marketing", owner: "già seguito", "self-serve": "self-serve", review: "revisione", alert: "errore" },
+    leads_text: [
+      { what: "Tier 1: avviso immediato ai venditori", trace: ["Arriva il form con email, messaggio e campagne UTM.", "Dominio velasca.com, UTM normalizzati in minuscolo.", "Contatto nuovo (alwaysOutputData=true mantiene il flusso attivo).", "Nessun venditore assegnato: si può valutare e smistare.", "Dominio aziendale: si prosegue.", "velasca.com risponde; il testo pubblico passa all'AI.", "gpt-4o-mini (temp 0.1, JSON): Tier 1, fiducia 92.", "Il nodo Code legge il JSON in sicurezza (fiducia 92).", "92 ≥ 80: si può instradare in automatico.", "Ramo Tier 1.", "Prima campagna bloccata, ultima campagna e campi ICP salvati.", "Avviso inviato su Slack al team vendite."] },
+      { what: "Tier 2: prima campagna preservata", trace: ["Arriva il form con email, messaggio e UTM.", "Dominio satispay.com.", "Contatto già presente: i vecchi first_touch_utm_* restano protetti.", "Nessun venditore ancora assegnato: si valuta.", "Dominio aziendale: si prosegue.", "satispay.com risponde.", "Tier 2, fiducia 88: download esplorativo, non ancora pronto all'acquisto.", "Il nodo Code legge il JSON in sicurezza (fiducia 88).", "88 ≥ 80: instradamento automatico.", "Ramo Tier 2.", "Prima campagna originale conservata; ultima campagna aggiornata."], quiet: "Nessun messaggio su Slack. I contatti esplorativi vanno al Marketing senza interrompere i venditori." },
+      { what: "Già seguito da un venditore: non toccato", trace: ["Arriva il form con email, messaggio e UTM.", "Dominio tannico.it.", "Contatto trovato in HubSpot con un venditore già assegnato.", "Owner presente: il commerciale sta già lavorando questo contatto.", "Si aggiornano solo i tre campi dell'ultima campagna (last-touch).", "Il venditore riceve una nota su Slack. Zero chiamate AI, nessun cambio stato."] },
+      { what: "Email Gmail personale: €0 spesi in AI", trace: ["Arriva il form con email, messaggio e UTM.", "Dominio gmail.com.", "Contatto nuovo.", "Nessun venditore: si prosegue.", "gmail.com è nella lista email personali: stop qui.", "Salvato per il percorso self-serve (UTM inclusi). Nessuna lettura sito, nessuna chiamata AI."], quiet: "Nessun avviso su Slack. Le email personali non disturbano i venditori e non consumano crediti AI." },
+      { what: "Sito bloccato: revisione umana", trace: ["Arriva il form con email, messaggio e UTM.", "Dominio stealth-co.example.", "Contatto nuovo (alwaysOutputData=true).", "Nessun venditore: si prosegue.", "Dominio aziendale: si prosegue.", "Errore HTTP 403. Il nodo continua in errore per non perdere il contatto.", "Senza sito e con un messaggio di 2 parole: fiducia 62.", "Il nodo Code legge il JSON in sicurezza (fiducia 62).", "62 < 80: bloccato l'instradamento automatico.", "Salvato in needs_human_review con tutti gli UTM intatti."], quiet: "Nessun avviso sul canale Vendite. Il contatto attende in sicurezza nella lista HubSpot needs_human_review per il controllo mattutino." },
+      { what: "HubSpot risponde errore 429", trace: ["Stesso contatto Velasca.", "Dominio velasca.com.", "Contatto nuovo.", "Nessun venditore: si prosegue.", "Dominio aziendale: si prosegue.", "velasca.com risponde.", "Tier 1, fiducia 92.", "Letto correttamente.", "Instradamento automatico.", "Ramo Tier 1.", "HubSpot risponde 429. Questo nodo ferma l'esecuzione in errore.", "Il workflow separato error-notifier.n8n.json intercetta il blocco.", "Il team Ops riceve nodo ed errore esatto su #martech-alerts."], none: "Nessun dato scritto: il flusso si è fermato alla scrittura HubSpot. Ops lo riesegue dallo storico di n8n appena HubSpot torna disponibile." },
+    ],
+  },
+};
+
+let LANG = new URLSearchParams(location.search).get("lang") || localStorage.getItem("portfolio_lang") || "en";
+if (!I18N[LANG]) LANG = "en";
+const T = (k) => I18N[LANG][k] ?? I18N.en[k] ?? k;
+
 const LEADS = [
   {
-    email: "growth@velasca.com", route: "sales", what: "Tier 1: alert for a rep",
+    email: "growth@velasca.com", route: "sales",
     form: { utm_source: "linkedin", utm_medium: "paid_social", utm_campaign: "eu_crm_audit_q2", message: "Looking to restructure Klaviyo win-back and VIP discount exclusion flows." },
     domain: "velasca.com",
     path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Corporate Email", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Switch", "Upsert Tier 1", "Tier 1 Sales Alert"],
-    trace: ["Form arrives with email, message and UTMs.", "Domain velasca.com, UTMs lowercased.", "No contact yet (alwaysOutputData=true keeps new leads flowing).", "No owner: the workflow may score and route.", "Not a free-mail domain: continue.", "velasca.com answers; its text goes to the model.", "gpt-4o-mini, temperature 0.1, JSON only: Tier 1, confidence 92.", "Parsed once with safe defaults (confidence_score=92).", "92 is at least 80: route automatically.", "Tier 1 branch.", "First touch written once, last touch and ICP fields written.", "Alert posted for a rep to follow up."],
-    values: { icp_tier: "Tier 1", routing_status: "sales_fast_track", ai_confidence_score: "92", ai_icp_reasoning: "Italian D2C footwear brand with a repeat-purchase and VIP-margin need in Klaviyo.", ai_personalized_hook: "Keeping full-price repeat buyers out of win-back offers is usually the quickest margin fix in Klaviyo.", first_touch_utm_source: ["linkedin", "new contact: written once"], first_touch_utm_medium: ["paid_social", "new contact: written once"], first_touch_utm_campaign: ["eu_crm_audit_q2", "new contact: written once"], last_touch_utm_source: "linkedin", last_touch_utm_medium: "paid_social", last_touch_utm_campaign: "eu_crm_audit_q2" },
+    values: { icp_tier: "Tier 1", routing_status: "sales_fast_track", ai_confidence_score: "92", ai_icp_reasoning: "Italian D2C footwear brand with a repeat-purchase and VIP-margin need in Klaviyo.", ai_personalized_hook: "Keeping full-price repeat buyers out of win-back offers is usually the quickest margin fix in Klaviyo.", first_touch_utm_source: ["linkedin", "tag_new"], first_touch_utm_medium: ["paid_social", "tag_new"], first_touch_utm_campaign: ["eu_crm_audit_q2", "tag_new"], last_touch_utm_source: "linkedin", last_touch_utm_medium: "paid_social", last_touch_utm_campaign: "eu_crm_audit_q2" },
   },
   {
-    email: "research@satispay.com", route: "nurture", what: "Tier 2: first touch kept",
+    email: "research@satispay.com", route: "nurture",
     form: { utm_source: "organic", utm_medium: "seo", utm_campaign: "blog_geo_guide", message: "Downloading your benchmark on AI search visibility in fintech." },
     domain: "satispay.com",
     path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Corporate Email", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Switch", "Upsert Tier 2/3"],
-    trace: ["Form arrives with email, message and UTMs.", "Domain satispay.com.", "Existing contact found: its first_touch_utm_* will be kept.", "No owner yet: score and route again.", "Corporate domain: continue.", "satispay.com answers.", "Tier 2, confidence 88: a research download, no buying intent yet.", "Parsed once with safe defaults (confidence_score=88).", "88 is at least 80: route automatically.", "Tier 2 branch.", "Existing first_touch_utm_* kept; last_touch_utm_* refreshed."],
-    values: { icp_tier: "Tier 2", routing_status: "marketing_nurture", ai_confidence_score: "88", ai_icp_reasoning: "Real fintech company; a top-of-funnel research download without buying intent.", first_touch_utm_source: ["meta", "kept from existing"], first_touch_utm_medium: ["paid_social", "kept from existing"], first_touch_utm_campaign: ["meta_webinar_q1", "kept from existing"], last_touch_utm_source: "organic", last_touch_utm_medium: "seo", last_touch_utm_campaign: "blog_geo_guide" },
-    quiet: "Nothing posted. Nurture leads go to marketing without pinging Sales.",
+    values: { icp_tier: "Tier 2", routing_status: "marketing_nurture", ai_confidence_score: "88", ai_icp_reasoning: "Real fintech company; a top-of-funnel research download without buying intent.", first_touch_utm_source: ["meta", "tag_kept"], first_touch_utm_medium: ["paid_social", "tag_kept"], first_touch_utm_campaign: ["meta_webinar_q1", "tag_kept"], last_touch_utm_source: "organic", last_touch_utm_medium: "seo", last_touch_utm_campaign: "blog_geo_guide" },
   },
   {
-    email: "crm@tannico.it", route: "owner", what: "Owned by Sales: left alone",
+    email: "crm@tannico.it", route: "owner",
     form: { utm_source: "klaviyo", utm_medium: "email", utm_campaign: "nl_black_friday_2026", message: "Can we add the VIP exclusion to our Black Friday sends too?" },
     domain: "tannico.it", owner: "81234567",
     path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Refresh Last Touch", "Tell the Owner"],
-    trace: ["Form arrives with email, message and UTMs.", "Domain tannico.it.", "Contact found, with an owner set in HubSpot.", "Owner set: Sales already works this contact.", "Only the three last-touch UTMs are written.", "The owner is told in Slack. No AI call, no new route."],
     values: { last_touch_utm_source: "klaviyo", last_touch_utm_medium: "email", last_touch_utm_campaign: "nl_black_friday_2026" },
     kept: [["icp_tier", "Tier 1"], ["routing_status", "sales_fast_track"], ["first_touch_utm_campaign", "eu_crm_audit_q2"], ["hubspot_owner_id", "81234567"]],
   },
   {
-    email: "name@gmail.com", route: "self-serve", what: "Free email: no AI call",
+    email: "name@gmail.com", route: "self-serve",
     form: { utm_source: "meta", utm_medium: "paid_social", utm_campaign: "lead_form_broad", message: "Hi, can you send me pricing for a small project?" },
     domain: "gmail.com",
     path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Corporate Email", "Free Email"],
-    trace: ["Form arrives with email, message and UTMs.", "Domain gmail.com.", "No contact yet.", "No owner: continue.", "gmail.com is on the free-mail list: stop here.", "Saved for self-serve nurture: first touch written once, last touch refreshed. No website fetch, no AI call."],
-    values: { first_touch_utm_source: ["meta", "new contact: written once"], first_touch_utm_medium: ["paid_social", "new contact: written once"], first_touch_utm_campaign: ["lead_form_broad", "new contact: written once"], last_touch_utm_source: "meta", last_touch_utm_medium: "paid_social", last_touch_utm_campaign: "lead_form_broad" },
-    quiet: "Nothing posted. Personal emails never reach Sales or the model.",
+    values: { first_touch_utm_source: ["meta", "tag_new"], first_touch_utm_medium: ["paid_social", "tag_new"], first_touch_utm_campaign: ["lead_form_broad", "tag_new"], last_touch_utm_source: "meta", last_touch_utm_medium: "paid_social", last_touch_utm_campaign: "lead_form_broad" },
   },
   {
-    email: "info@stealth-co.example", route: "review", what: "Blocked site: human review",
+    email: "info@stealth-co.example", route: "review",
     form: { utm_source: "google", utm_medium: "cpc", utm_campaign: "cpc_martech", message: "Info please" },
     domain: "stealth-co.example",
     path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Corporate Email", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Manual Review"],
-    trace: ["Form arrives with email, message and UTMs.", "Domain stealth-co.example.", "New contact (alwaysOutputData=true).", "No owner: continue.", "Corporate domain: continue.", "HTTP 403. The node continues on error, so the lead is not lost.", "No page text and a two-word message: confidence 62.", "Parsed once with safe defaults (confidence_score=62).", "62 is under 80: no automatic routing.", "Held in needs_human_review with all UTM attribution preserved."],
-    values: { ai_confidence_score: "62", ai_icp_reasoning: "Website unreachable (HTTP 403) and 2-word message lacks context.", first_touch_utm_source: ["google", "new contact: written once"], first_touch_utm_medium: ["cpc", "new contact: written once"], first_touch_utm_campaign: ["cpc_martech", "new contact: written once"], last_touch_utm_source: "google", last_touch_utm_medium: "cpc", last_touch_utm_campaign: "cpc_martech" },
-    quiet: "Nothing posted. The lead waits in the HubSpot list needs_human_review, which Ops clears every morning.",
+    values: { ai_confidence_score: "62", ai_icp_reasoning: "Website unreachable (HTTP 403) and 2-word message lacks context.", first_touch_utm_source: ["google", "tag_new"], first_touch_utm_medium: ["cpc", "tag_new"], first_touch_utm_campaign: ["cpc_martech", "tag_new"], last_touch_utm_source: "google", last_touch_utm_medium: "cpc", last_touch_utm_campaign: "cpc_martech" },
   },
   {
-    email: "growth@velasca.com", route: "alert", what: "HubSpot returns 429",
+    email: "growth@velasca.com", route: "alert",
     form: { utm_source: "linkedin", utm_medium: "paid_social", utm_campaign: "eu_crm_audit_q2", message: "Looking to restructure Klaviyo win-back and VIP discount exclusion flows." },
     domain: "velasca.com",
     path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Corporate Email", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Switch", "Upsert Tier 1", "Error Trigger", "martech-alerts"],
     fail: "Upsert Tier 1",
-    trace: ["Same Velasca lead.", "Domain velasca.com.", "No contact yet.", "No owner: continue.", "Corporate domain: continue.", "velasca.com answers.", "Tier 1, confidence 92.", "Parsed cleanly.", "Route automatically.", "Tier 1 branch.", "HubSpot answers 429. This node does not continue on error, so the run fails.", "Standalone error-notifier.n8n.json catches the failed run.", "Ops is told which workflow & node failed and why."],
     values: {},
-    none: "Nothing written: the run stopped at the upsert. Ops replays it from n8n's execution history once HubSpot recovers.",
     error: "Request failed with status code 429",
   },
 ];
@@ -392,24 +536,28 @@ const LEADS = [
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const clean = (s) => s.replace(/\s*[\u2013\u2014]\s*/g, ": ");
-let WF = null, ERR_WF = null, WF_TEXT = null, current = 0;
+let WF = null, ERR_WF = null, WF_TEXT = null, CSV_ROWS = null, current = 0;
 
-// ---- lead picker (radio group with arrow keys) ----
 const leadsEl = $("#leads");
-LEADS.forEach((l, i) => {
-  const b = document.createElement("button");
-  b.type = "button"; b.className = "lead"; b.setAttribute("role", "radio");
-  b.innerHTML = `<span class="em">${esc(l.email)}</span><span class="route">${esc(l.route)}</span><span class="what">${esc(l.what)}</span>`;
-  b.addEventListener("click", () => select(i));
-  b.addEventListener("keydown", (e) => {
-    const k = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
-    if (!k) return;
-    e.preventDefault();
-    const n = (i + k + LEADS.length) % LEADS.length;
-    select(n); leadsEl.children[n].focus();
+function buildLeadPicker() {
+  leadsEl.innerHTML = "";
+  const lt = I18N[LANG].leads_text;
+  const rt = I18N[LANG].route_tag;
+  LEADS.forEach((l, i) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "lead"; b.setAttribute("role", "radio");
+    b.innerHTML = `<span class="em">${esc(l.email)}</span><span class="route">${esc(rt[l.route] || l.route)}</span><span class="what">${esc(lt[i].what)}</span>`;
+    b.addEventListener("click", () => select(i));
+    b.addEventListener("keydown", (e) => {
+      const k = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+      if (!k) return;
+      e.preventDefault();
+      const n = (i + k + LEADS.length) % LEADS.length;
+      select(n); leadsEl.children[n].focus();
+    });
+    leadsEl.append(b);
   });
-  leadsEl.append(b);
-});
+}
 
 function find(keyword) {
   const k = keyword.toLowerCase();
@@ -425,30 +573,31 @@ function select(i) {
     b.tabIndex = j === i ? 0 : -1;
   });
   const l = LEADS[i];
+  const txt = I18N[LANG].leads_text[i];
   $("#req").innerHTML = `<span class="k">POST /inbound-lead-router</span>\n` + esc(JSON.stringify({ email: l.email, ...l.form }, null, 2));
   $("#trace").innerHTML = l.path.map((k, j) => {
     const n = find(k);
     const end = j === l.path.length - 1 ? ' class="end"' : "";
-    return `<li${end}><b>${esc(n ? clean(n.name) : k)}</b><span>${esc(l.trace[j] || "")}</span></li>`;
+    return `<li${end}><b>${esc(n ? clean(n.name) : k)}</b><span>${esc(txt.trace[j] || "")}</span></li>`;
   }).join("");
-  renderWrites(l);
-  renderSlack(l);
+  renderWrites(l, txt);
+  renderSlack(l, txt);
   paint(l);
 }
 
-function renderWrites(l) {
+function renderWrites(l, txt) {
   const box = $("#writes");
-  if (l.none) { box.innerHTML = `<p class="empty">${esc(l.none)}</p>`; return; }
+  if (txt.none) { box.innerHTML = `<p class="empty">${esc(txt.none)}</p>`; return; }
   const node = [...l.path].reverse().map(find).find((n) => n && n.parameters && n.parameters.operation === "upsert");
   const props = node ? node.parameters.additionalFields.customPropertiesUi.customPropertiesValues : [];
-  const rows = [`<tr><td>email</td><td>${esc(l.email)}<span class="tag">match key</span></td></tr>`];
+  const rows = [`<tr><td>email</td><td>${esc(l.email)}<span class="tag">${esc(T("tag_match"))}</span></td></tr>`];
   for (const p of props) {
     let v = l.values[p.property], tag = "";
-    if (Array.isArray(v)) { tag = v[1]; v = v[0]; }
-    if (v === undefined) v = String(p.value).startsWith("=") ? "(from the run)" : p.value;
+    if (Array.isArray(v)) { tag = T(v[1]); v = v[0]; }
+    if (v === undefined) v = String(p.value).startsWith("=") ? T("from_run") : p.value;
     rows.push(`<tr><td>${esc(p.property)}</td><td>${esc(v)}${tag ? `<span class="tag new">${esc(tag)}</span>` : ""}</td></tr>`);
   }
-  for (const [k, v] of l.kept || []) rows.push(`<tr class="kept"><td>${esc(k)}</td><td>${esc(v)}<span class="tag">unchanged</span></td></tr>`);
+  for (const [k, v] of l.kept || []) rows.push(`<tr class="kept"><td>${esc(k)}</td><td>${esc(v)}<span class="tag">${esc(T("tag_unchanged"))}</span></td></tr>`);
   box.innerHTML = `<table class="writes">${rows.join("")}</table>`;
 }
 
@@ -475,17 +624,17 @@ function slackText(template, l) {
     .split("\n").map((line) => `<p>${line}</p>`).join("");
 }
 
-function renderSlack(l) {
+function renderSlack(l, txt) {
   const box = $("#slack");
   const last = find(l.path[l.path.length - 1]);
   if (last && last.type.endsWith("slack")) {
     const p = last.parameters;
     box.innerHTML = `<div class="msg"><div class="ch">${esc(p.channelId?.value || p.channel || "#inbound-tier1-leads")}</div>${slackText(p.text, l)}</div>` +
-      (l.route === "sales" ? `<p class="aside">The opener is for the rep to check. Nothing is emailed automatically.</p>` : "");
-  } else if (!WF && !l.quiet) {
-    box.innerHTML = `<p class="empty">The message text is read from the workflow file, which has not loaded.</p>`;
+      (l.route === "sales" ? `<p class="aside">${esc(T("slack_aside"))}</p>` : "");
+  } else if (!WF && !txt.quiet) {
+    box.innerHTML = `<p class="empty">${esc(T("slack_unloaded"))}</p>`;
   } else {
-    box.innerHTML = `<p class="empty">${esc(l.quiet || "")}</p>`;
+    box.innerHTML = `<p class="empty">${esc(txt.quiet || "")}</p>`;
   }
 }
 
@@ -524,7 +673,7 @@ function drawGraph() {
   const byName = new Map(nodes.map((n) => [n.name, n]));
   const label = (e) => {
     const n = byName.get(e.from), t = n.type.split(".").pop();
-    if (t === "if") return e.outs.map((o) => (o === 0 ? "yes" : "no")).join(", ");
+    if (t === "if") return e.outs.map((o) => (o === 0 ? T("edge_yes") : T("edge_no"))).join(", ");
     if (t === "switch") {
       const keys = (n.parameters.rules?.values || []).map((r) => r.outputKey);
       const names = e.outs.map((o) => keys[o] || "Tier 3");
@@ -597,19 +746,20 @@ window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer
 
 // ---- field matrix, computed from the HubSpot nodes ----
 function drawMatrix() {
+  if (!WF) return;
   const writers = WF.nodes.filter((n) => n.type.endsWith("hubspot") && n.parameters.operation === "upsert");
   const props = [];
   for (const n of writers) for (const p of n.parameters.additionalFields.customPropertiesUi.customPropertiesValues) if (!props.includes(p.property)) props.push(p.property);
   const order = ["first_touch_utm_source", "first_touch_utm_medium", "first_touch_utm_campaign", "last_touch_utm_source", "last_touch_utm_medium", "last_touch_utm_campaign", "icp_tier", "routing_status", "ai_confidence_score", "ai_icp_reasoning", "ai_personalized_hook"];
   props.sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
-  const head = `<thead><tr><th>Property</th>${writers.map((n) => `<th>${esc(shortName(n.name))}</th>`).join("")}</tr></thead>`;
+  const head = `<thead><tr><th>${esc(T("mat_prop"))}</th>${writers.map((n) => `<th>${esc(shortName(n.name))}</th>`).join("")}</tr></thead>`;
   const rows = props.map((prop) => `<tr><th>${esc(prop)}</th>${writers.map((n) => {
     const p = n.parameters.additionalFields.customPropertiesUi.customPropertiesValues.find((x) => x.property === prop);
     if (!p) return "<td>-</td>";
-    return String(p.value).includes("Search Existing Contact") ? '<td class="once">only if blank</td>' : '<td class="w">writes</td>';
+    return String(p.value).includes("Search Existing Contact") ? `<td class="once">${esc(T("mat_once"))}</td>` : `<td class="w">${esc(T("mat_writes"))}</td>`;
   }).join("")}</tr>`);
   for (const prop of ["lifecyclestage", "hubspot_owner_id"]) {
-    if (!props.includes(prop)) rows.push(`<tr class="never"><th>${prop}</th><td colspan="${writers.length}">never written by any node</td></tr>`);
+    if (!props.includes(prop)) rows.push(`<tr class="never"><th>${prop}</th><td colspan="${writers.length}">${esc(T("mat_never"))}</td></tr>`);
   }
   $("#matrix").innerHTML = head + `<tbody>${rows.join("")}</tbody>`;
 }
@@ -630,31 +780,44 @@ function parseCSV(text) {
   return body.map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] || ""])));
 }
 
-const ROUTES = [
-  ["sales_fast_track", "Sales fast track", "Contact in HubSpot and an alert for a rep"],
-  ["marketing_nurture", "Marketing nurture", "Logged as nurture, Sales not interrupted"],
-  ["self_serve_nurture", "Free email filter", "Stopped before any AI call"],
-  ["needs_human_review", "Human review", "Held for Ops, no guessing"],
-];
-
+let casesBound = false;
 function drawCases(rows) {
+  CSV_ROWS = rows;
   const box = $("#case-groups");
-  box.innerHTML = ROUTES.map(([key, title, what]) => {
+  box.innerHTML = I18N[LANG].routes.map(([key, title, what]) => {
     const list = rows.filter((r) => r.expected_route === key);
     if (!list.length) return "";
-    return `<div class="group"><div class="count">${list.length}</div><h3>${title}</h3><div class="rt">${key}</div>
+    return `<div class="group"><div class="count">${list.length}</div><h3>${esc(title)}</h3><div class="rt">${key}</div>
       <div class="chips">${list.map((r) => `<button type="button" class="chip" aria-pressed="false" data-id="${esc(r.case_id)}">${esc(r.company)}</button>`).join("")}</div>
       <p class="case-detail" aria-live="polite">${esc(what)}.</p></div>`;
   }).join("");
-  box.addEventListener("click", (e) => {
-    const chip = e.target.closest(".chip");
-    if (!chip) return;
-    const r = rows.find((x) => x.case_id === chip.dataset.id);
-    const group = chip.closest(".group");
-    group.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c === chip)));
-    group.querySelector(".case-detail").innerHTML = `<span class="q">${esc(r.company)} (${esc(r.domain)}), invented test message: "${esc(r.sample_inbound_intent)}"</span><span class="m">${esc(r.expected_icp_tier)}, tests: ${esc(r.guardrail_tested.replace(/->/g, "to"))}</span>`;
-  });
+  if (!casesBound) {
+    casesBound = true;
+    box.addEventListener("click", (e) => {
+      const chip = e.target.closest(".chip");
+      if (!chip || !CSV_ROWS) return;
+      const r = CSV_ROWS.find((x) => x.case_id === chip.dataset.id);
+      const group = chip.closest(".group");
+      group.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c === chip)));
+      group.querySelector(".case-detail").innerHTML = `<span class="q">${esc(r.company)} (${esc(r.domain)}), ${esc(T("chip_msg_lbl"))} "${esc(r.sample_inbound_intent)}"</span><span class="m">${esc(r.expected_icp_tier)}, ${esc(T("chip_tests_lbl"))} ${esc(r.guardrail_tested.replace(/->/g, "to"))}</span>`;
+    });
+  }
 }
+
+function applyLang(lang) {
+  LANG = I18N[lang] ? lang : "en";
+  localStorage.setItem("portfolio_lang", LANG);
+  document.documentElement.lang = LANG;
+  document.title = T("page_title");
+  document.querySelectorAll(".lang-switch button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === LANG)));
+  document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = T(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-html]").forEach((el) => { el.innerHTML = T(el.dataset.i18nHtml); });
+  buildLeadPicker();
+  select(current);
+  if (WF) { drawGraph(); drawMatrix(); }
+  if (CSV_ROWS) drawCases(CSV_ROWS);
+}
+document.querySelectorAll(".lang-switch button").forEach((b) => b.addEventListener("click", () => applyLang(b.dataset.lang)));
 
 // ---- load ----
 fetch(BASE + "workflows/error-notifier.n8n.json")
@@ -678,7 +841,6 @@ fetch(BASE + "data/real-companies-benchmark.csv")
   .then((t) => drawCases(parseCSV(t)))
   .catch(() => { $("#case-groups").innerHTML = `<div class="group">The CSV did not load. <a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/data/real-companies-benchmark.csv">Open it on GitHub</a>.</div>`; });
 
-// A real download of the file already fetched for the graph.
 $("#dl").addEventListener("click", (e) => {
   if (!WF_TEXT) return;
   e.preventDefault();
@@ -689,7 +851,7 @@ $("#dl").addEventListener("click", (e) => {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 });
 
-select(0);
+applyLang(LANG);
 </script>
 </body>
 </html>
