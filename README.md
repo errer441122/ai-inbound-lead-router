@@ -6,7 +6,7 @@ A visual **n8n + HubSpot + LLM** workflow that turns raw inbound form submission
 
 [![The walkthrough page: six example leads and the n8n workflow drawn from its own file](assets/page.png)](https://errer441122.github.io/ai-inbound-lead-router/)
 
-> **What is real and what is a test:** the workflow is an importable n8n blueprint for HubSpot Free CRM (Private App), OpenAI (`gpt-4o-mini`) or Google Gemini (`gemini-2.5-flash`), and Slack (`#inbound-tier1-leads`, `#martech-alerts`). The 30 test cases in `data/real-companies-benchmark.csv` pair real public company domains with **invented** inbound messages and list the route each case should take; they have not been run end to end yet. The leads on the walkthrough page are examples. No private customer data is used.
+> **Test scope.** The n8n blueprint is designed for HubSpot, OpenAI or Google Gemini, and Slack. The 30-case benchmark uses invented enquiries, public company homepages, and a local model to compare routing decisions. [See the benchmark results and scope](docs/routing-benchmark.md).
 
 ---
 
@@ -69,7 +69,7 @@ Test matrix: [`data/real-companies-benchmark.csv`](data/real-companies-benchmark
 - **25 real European D2C & B2B SaaS public domains** (*Velasca, Cortilia, Tannico, Gymshark, Huel, Factorial, Qonto, Brevo, Typeform, Holded, Pipedrive, Fatture in Cloud, Pennylane, Scalapay, Casavo, Satispay, Bending Spoons, Subito, Vinted, Too Good To Go, Klarna, N26, Revolut, Wise, Zalando*). The workflow would fetch their real homepages; the inbound messages are **invented** test inputs, not enquiries from these companies.
 - **3 personal free-email cases** (`gmail.com`, `libero.it`, `outlook.com`) that should never reach the AI.
 - **2 failure / low-confidence cases** that should land in `needs_human_review`.
-- **Status:** each row lists `expected_route` and `expected_icp_tier`. The set has **not been run end to end yet**. To run it, POST each row to the webhook and compare HubSpot's `routing_status` and `icp_tier` with the expected columns.
+- **Results:** [Fixed rules versus AI on all 30 cases](docs/routing-benchmark.md), with [one row per decision](data/routing-benchmark-results.csv). The benchmark exercises routing in isolation. The webhook, CRM writes, and Slack notifications are integration checks for a separate run.
 - **Estimated API unit cost:** ~€0.001–€0.002 per corporate lead (~€1–€2 per 1,000 leads on `gpt-4o-mini` / `gemini-2.5-flash` list prices).
 
 ---
