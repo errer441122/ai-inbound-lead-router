@@ -1,5 +1,8 @@
 # Never commit real customer PII exports
 data/*.csv
 !data/real-companies-benchmark.csv
+!data/routing-2026-*.csv
+!data/unseen-messages.csv
+!data/unseen-2026-*.csv
 build/
 .env

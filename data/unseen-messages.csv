@@ -1,0 +1,52 @@
+id,language,asks_for_work,ambiguous,message
+01,en,yes,,"Hi, we need a custom CRM setup for our e-commerce store. Could you send me a quote? Thanks, Sarah from GrowthLoop."
+02,en,yes,,"Our marketing automation is completely broken and losing clients daily. Who can fix this asap? Regards, Mike, CTO at TechFlow."
+03,en,yes,,"Looking for a consultant to redesign our customer journey emails. Can we schedule a call next week? Best, Elena."
+04,en,yes,,Does anyone know if you offer support for legacy systems integration? We have old data that needs migrating.
+05,en,yes,,"Hi team, writing to ask for help with our lead scoring model. It's not tracking accurately anymore. Thanks!"
+06,en,yes,,"Can you build an automated workflow for B2B sales leads? Need something fast and reliable. Cheers, Alex."
+07,en,yes,,We are struggling with high bounce rates in our newsletters. Can we get some expert advice on this issue?
+08,en,yes,,Is it possible to integrate our ERP with your existing marketing suite? We need a project manager for this.
+09,en,yes,,"Hello, I'm a startup founder needing a full digital transformation plan. Do you have time for a consultation?"
+10,en,yes,,Could you help us set up personalized email sequences for our new product launch? Waiting for an update.
+11,en,yes,,"Hi, my team lost all recent customer data after a breach. Can we get your services to rebuild our trust back?"
+12,en,yes,,"Looking for a specialist in GDPR compliance for our EU client base. Any availability coming Monday? Regards, Tom."
+13,en,no,,"Hi, I'd like to request the Q3 market trends report for free."
+14,en,no,,Thank you so much for your quick response to my inquiry yesterday!
+15,en,no,,Is the newsletter still being sent since I unlisted myself last month?
+16,en,no,,Could someone please email me the whitepaper on B2B CRM integration?
+17,en,no,yes,"We are an agency, do we need a demo or just contact info?"
+18,en,no,,I am applying for the marketing manager role at your firm.
+19,en,no,,Just wondering if my overdue invoice from October has been paid yet.
+20,en,no,,Looking forward to attending your webinar on e-commerce automation next week.
+21,en,no,yes,"The data in our last email was a bit off, can you clarify this?"
+22,en,no,,"Sorry, we decided to go with a different vendor for this project."
+23,en,no,,"Hi there, I'm a student researching digital transformation case studies."
+24,en,no,,Thanks again for the helpful tips on setting up automated workflows!
+25,en,no,,Our supplier needs these compliance standards signed by your legal team ASAP.
+26,it,yes,,"Ciao, abbiamo bisogno di uno CRM per la nostra e-commerce store, fate una stime veloce."
+27,it,yes,yes,"Buongiorno, il nostro team di marketing fatica ad automatizzare i flussi email, vi serve aiuto?"
+28,it,yes,,"Grazie per il preventivo ricevuto, ma potreste aggiornarlo considerando anche le nostre esigenze B2B?"
+29,it,yes,,Sto cercando un consulente esperto in CRM per gestire il database clienti del mio startup tech.
+30,it,yes,,La vostra azienda è la migliore in Italia? Vorrei un progetto completo per digitalizare il nostro retail.
+31,it,yes,,"Ciao a tutti, ho un problema grave con l'integrazione dati che non riesco a risolvere da solo."
+32,it,yes,,"Buongiorno, sarete disponibili per una consulenza gratuita sulle strategie di automazione email per i prossimi giorni?"
+33,it,yes,,Ho appena lanciato la mia azienda e necessito urgentemente di un sistema CRM affidabile.
+34,it,yes,,"Scusate le interruzioni, ma potreste riscrivere il contratto attuale includendo servizi extra di analisi?"
+35,it,yes,,"Salve, il mio dipendente IT ha sbattuto il portalesse, abbiamo bisogno di qualcuno che gestisca tutto il backend."
+36,it,yes,,"Mi servono suggerimenti su come strutturare una campagna automatizzata, scrivermi una guida breve."
+37,it,yes,,"Buongiorno, per favore forniscemi un preventivo dettagliato per l'implementazione di un sistema CRM personalizzato."
+38,it,no,,"Ciao, volevo iscrivirmi alla newsletter per aggiornamenti sul mercato del software."
+39,it,no,,"Grazie mille per l'email ieri, tutto è stato risolto immediatamente."
+40,it,no,,Salve sono uno studente di marketing e cerco risorse gratuite su automation.
+41,it,no,,"Mi manca la fattura n. 4022 emessa da tre mesi, può inviarla?"
+42,it,no,,"Buongiorno, siamo un altro agenzia che vende servizi simili al vostro."
+43,it,no,,"Grazie per il tempo dedicato alla risposta, ho letto tutto di passaggio."
+44,it,no,,"Non sono interessato a queste offerte in questo momento, molto carino."
+45,it,no,yes,Sto cercando un freelance senior per gestione campagne B2B su LinkedIn.
+46,it,no,,La vostra proposta sembra ottima ma non c'è spazio nel budget attuale.
+47,it,no,,"Ho sbagliato a inviare la domanda, scusate ma volevo solo info generali."
+48,it,no,yes,Mi serve sapere se avete partner affidabili nella zona di Milano.
+49,it,no,,"Egregio signor Rossi, mi dispiace ma preferisco valutare altre soluzioni."
+50,it,no,,Grazie per il supporto tecnico durante i venerdì della settimana prossima.
+51,it,no,,Ciao volevo chiedere un esempio di caso studio precedente nel settore e-commerce.

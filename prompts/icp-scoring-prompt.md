@@ -29,7 +29,11 @@ Rules (non-negotiable):
    and add "insufficient_website_context" to risk_flags.
 3. The personalized_hook must reference ONE verifiable product or positioning fact
    visible in the homepage excerpt or inbound message — never generic flattery.
-4. Output strictly valid JSON matching the schema below and nothing else.
+4. request_quote must be the exact words of the inbound message that ask for work for the
+   sender's company (a project, a quote, a demo, help with a specific problem), copied without
+   changes. Use an empty string if they ask for none: newsletter, download, reading, general
+   information, student, job, another agency selling, invoice, thanks, complaint.
+5. Output strictly valid JSON matching the schema below and nothing else.
 
 JSON Schema:
 {
@@ -39,15 +43,17 @@ JSON Schema:
   "industry": string,
   "reasoning": string (max 25 words explaining why this tier was assigned),
   "personalized_hook": string (1 factual opener sentence for a human rep to review),
-  "risk_flags": string[]
+  "risk_flags": string[],
+  "request_quote": string (exact words of the message, or "")
 }
 ```
 
 ---
 
-## 3. Four Built-In Guardrails Against AI Errors
+## 3. Five Built-In Guardrails Against AI Errors
 
 1. **Free-email pre-filter (before the AI runs):** Personal email domains (`gmail.com`, `yahoo.com`, `libero.it`, etc.) never reach the HTTP fetch or LLM node — saving API cost and preventing noisy false positives.
 2. **Confidence gate (`confidence_score >= 80`):** Any score below 80 — or any failed/timed-out website fetch (`continueOnFail: true`) — branches automatically to `HubSpot: Flag Needs Manual Review` instead of routing a shaky guess to Sales.
-3. **Human-in-the-loop outreach:** The `personalized_hook` is posted into Slack as a *"Suggested opener (review before sending)"* — **the workflow never sends an automated AI-written email directly to a prospect.**
-4. **Unit cost discipline:** Using a compact model (`gpt-4o-mini` / `gemini-2.5-flash`) on ~2,500 characters of homepage text keeps qualification cost at **~€0.001–€0.002 per corporate lead (~€1–€2 per 1,000 leads)**.
+3. **The score alone decides nothing:** the Code node checks that `request_quote` is in the message word for word (at least three words). Tier 1 without a request, or a request with a lower tier, goes to a person. [Why: a local model gave 95 and 98 to two messages that asked for nothing](../docs/routing-benchmark.md).
+4. **Human-in-the-loop outreach:** The `personalized_hook` is posted into Slack as a *"Suggested opener (review before sending)"* — **the workflow never sends an automated AI-written email directly to a prospect.**
+5. **Unit cost discipline:** Using a compact model (`gpt-4o-mini` / `gemini-2.5-flash`) on ~2,500 characters of homepage text keeps qualification cost at **~€0.001–€0.002 per corporate lead (~€1–€2 per 1,000 leads)**.
