@@ -34,37 +34,37 @@
             {
               "id": "a1",
               "name": "email",
-              "value": "={{ ($json.body.email || '').trim().toLowerCase() }}",
+              "value": "={{ ($json.body.email || '').replace(/[<>]/g, '').trim().toLowerCase() }}",
               "type": "string"
             },
             {
               "id": "a2",
               "name": "domain",
-              "value": "={{ (($json.body.email || '').trim().toLowerCase().split('@')[1]) || '' }}",
+              "value": "={{ (($json.body.email || '').replace(/[<>]/g, '').trim().toLowerCase().split('@')[1] || '').match(/^(?!.*\\.(?:local|internal|localhost|lan|home)$)(?:[a-z0-9-]+\\.)+[a-z][a-z0-9-]+$/)?.[0] || '' }}",
               "type": "string"
             },
             {
               "id": "a3",
               "name": "utm_source",
-              "value": "={{ ($json.body.utm_source || 'direct').trim().toLowerCase() }}",
+              "value": "={{ ($json.body.utm_source || 'direct').replace(/[<>]/g, '').trim().toLowerCase() }}",
               "type": "string"
             },
             {
               "id": "a4",
               "name": "utm_medium",
-              "value": "={{ ($json.body.utm_medium || 'none').trim().toLowerCase() }}",
+              "value": "={{ ($json.body.utm_medium || 'none').replace(/[<>]/g, '').trim().toLowerCase() }}",
               "type": "string"
             },
             {
               "id": "a5",
               "name": "utm_campaign",
-              "value": "={{ ($json.body.utm_campaign || 'unattributed').trim().toLowerCase() }}",
+              "value": "={{ ($json.body.utm_campaign || 'unattributed').replace(/[<>]/g, '').trim().toLowerCase() }}",
               "type": "string"
             },
             {
               "id": "a6",
               "name": "message",
-              "value": "={{ ($json.body.message || '').trim() }}",
+              "value": "={{ ($json.body.message || '').replace(/[<>]/g, '').trim() }}",
               "type": "string"
             }
           ]
@@ -277,7 +277,7 @@
       ],
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const page = $('HTTP: Fetch Public Homepage Context').item.json;\nconst message = $('Normalize Lead & Extract Domain').item.json.message;\nconst text = typeof page.data === 'string' ? page.data.replace(/<[^>]+>/g, ' ').trim() : '';\nconst raw = $json.choices?.[0]?.message?.content || $json.candidates?.[0]?.content?.parts?.[0]?.text || '';\nlet parsed;\ntry {\n  parsed = JSON.parse(String(raw).replace(/```json|```/g, '').trim());\n} catch {\n  parsed = null;\n}\nconst validTier = ['Tier 1', 'Tier 2', 'Tier 3'].includes(parsed?.icp_tier);\nconst score = parsed?.confidence_score;\nconst validScore = Number.isInteger(score) && score >= 0 && score <= 100;\nconst validQuote = typeof parsed?.request_quote === 'string';\n\n// The request must be in the message, word for word: at least three words in a row.\nconst words = (s) => String(s || '').toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, ' ').trim();\nconst quote = words(parsed?.request_quote);\nconst request = quote.split(' ').length >= 3 && ` ${words(message)} `.includes(` ${quote} `);\n\n// The score alone decides nothing: when tier and message disagree, a person does.\nconst tier1 = parsed?.icp_tier === 'Tier 1';\nconst review = (!text || page.error) ? 'Website context unavailable.' :\n  (!validTier || !validScore || !validQuote) ? 'AI tier, confidence or quote is missing or invalid.' :\n  (tier1 && !request) ? `AI says Tier 1 (${score}) but quotes no request from the message.` :\n  (!tier1 && quote) ? `AI says ${parsed.icp_tier} (${score}) but quotes a request: \"${parsed.request_quote}\".` : '';\nreturn { json: {\n  icp_tier: validTier ? parsed.icp_tier : '',\n  confidence_score: review ? 0 : score,\n  request_quote: request ? parsed.request_quote : '',\n  reasoning: review || parsed.reasoning || '',\n  personalized_hook: review ? '' : (parsed.personalized_hook || ''),\n  risk_flags: review || (Array.isArray(parsed.risk_flags) ? parsed.risk_flags.join(', ') : '')\n} };"
+        "jsCode": "const page = $('HTTP: Fetch Public Homepage Context').item.json;\nconst message = $('Normalize Lead & Extract Domain').item.json.message;\nconst text = typeof page.data === 'string' ? page.data.replace(/<[^>]+>/g, ' ').trim() : '';\nconst raw = $json.choices?.[0]?.message?.content || $json.candidates?.[0]?.content?.parts?.[0]?.text || '';\nlet parsed;\ntry {\n  parsed = JSON.parse(String(raw).replace(/```json|```/g, '').trim());\n} catch {\n  parsed = null;\n}\nconst validTier = ['Tier 1', 'Tier 2', 'Tier 3'].includes(parsed?.icp_tier);\nconst score = parsed?.confidence_score;\nconst validScore = Number.isInteger(score) && score >= 0 && score <= 100;\nconst validQuote = typeof parsed?.request_quote === 'string';\n\n// The request must be in the message, word for word: at least three words in a row.\nconst words = (s) => String(s || '').toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, ' ').trim();\nconst quote = words(parsed?.request_quote);\nconst request = quote.split(' ').length >= 3 && ` ${words(message)} `.includes(` ${quote} `);\n\n// Text that gives orders to the model, in the message or on the website, goes to a person whatever the model answers.\nconst orders = /\\b(icp_tier|confidence_score|request_quote|system prompt)\\b|\\b(ignore|disregard|forget|ignora|dimentica)\\b.{0,40}\\b(instructions?|rules?|prompt|istruzioni|regole)\\b/i;\nconst tampered = orders.test(message) || orders.test(text.slice(0, 2500)) || /\\b(tier\\s*[123]|confidence|fiducia)\\b/i.test(message);\n\n// Nothing written by the sender or the model can mention people or hide a link in Slack.\nconst plain = (s) => String(s || '').replace(/https?:\\/\\/\\S+/gi, '[link]').replace(/[<>\\s]+/g, ' ').trim().slice(0, 300);\n\n// The score alone decides nothing: when tier and message disagree, a person does.\nconst tier1 = parsed?.icp_tier === 'Tier 1';\nconst review = (!text || page.error) ? 'Website context unavailable.' :\n  tampered ? 'The message or the website gives orders to the AI.' :\n  (!validTier || !validScore || !validQuote) ? 'AI tier, confidence or quote is missing or invalid.' :\n  (tier1 && !request) ? `AI says Tier 1 (${score}) but quotes no request from the message.` :\n  (!tier1 && quote) ? `AI says ${parsed.icp_tier} (${score}) but quotes a request: \"${plain(parsed.request_quote)}\".` : '';\nreturn { json: {\n  icp_tier: validTier ? parsed.icp_tier : '',\n  confidence_score: review ? 0 : score,\n  request_quote: request ? plain(parsed.request_quote) : '',\n  reasoning: review || plain(parsed.reasoning),\n  personalized_hook: review ? '' : plain(parsed.personalized_hook),\n  risk_flags: review || (Array.isArray(parsed.risk_flags) ? parsed.risk_flags.join(', ') : '')\n} };"
       },
       "notes": "Real JavaScript Code node (n8n Community-safe try/catch). Supports OpenAI & Gemini outputs; malformed/timeout responses default confidence_score to 0 -> needs_human_review."
     },

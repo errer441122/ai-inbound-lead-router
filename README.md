@@ -10,11 +10,11 @@ A visual **n8n + HubSpot + LLM** workflow that turns raw inbound form submission
 
 ---
 
-**Tested in n8n 2.48.7.** In 17 synthetic scenarios the workflow produced all
-17 expected destinations. Testing found two mistakes, both fixed: a failed site
+**Tested in n8n 2.48.7.** In 21 synthetic scenarios the workflow produced all
+21 expected destinations. Testing found three mistakes, all fixed: a failed site
 lookup, a missing or unknown tier and a score outside 0–100 let four contacts
-through, and a very sure model could alert Sales about a message that asked for
-nothing. The runs used a manual trigger and test doubles for the website, the
+through; a very sure model could alert Sales about a message that asked for
+nothing; text typed in the form reached Slack as it was. The runs used a manual trigger and test doubles for the website, the
 model, HubSpot and Slack. [See the cases and observed routes](docs/routing-verification.md).
 
 ## The Business Problem
@@ -59,6 +59,7 @@ flowchart LR
 | **Wasted AI credits on personal emails** | Pre-AI `IF` gate sends `gmail.com`, `yahoo.com`, `libero.it`, `outlook.com`, `icloud.com` and similar straight to self-serve nurture | [`workflows/ai-inbound-lead-router.n8n.json`](workflows/ai-inbound-lead-router.n8n.json) |
 | **AI hallucinations or blocked websites** | Strict JSON output contract (`temperature = 0.1`), `continueOnFail = true` on the website fetch and the AI call, and a hard **`confidence_score >= 80` gate** routing uncertain cases to `needs_human_review` | [`prompts/icp-scoring-prompt.md`](prompts/icp-scoring-prompt.md) |
 | **A very sure AI** | The score alone decides nothing. The model must copy the words that ask for work (`request_quote`) and the Code node checks they are in the message. Tier 1 without a request, or a request with a lower tier, goes to `needs_human_review` | [`docs/routing-benchmark.md`](docs/routing-benchmark.md) |
+| **Orders for the AI typed in the form** | Fixed rules, not the model: a message or a website that gives instructions goes to a person, mentions and links are removed before Slack, and the email domain must be a public name before the workflow opens it | [`tests/qualification-parser.mjs`](tests/qualification-parser.mjs) |
 | **Unreviewed AI emails sent to prospects** | **Human-in-the-loop by design:** the AI opener is posted only inside Slack for a rep to verify before sending | [`docs/sop-inbound-lead-routing.md`](docs/sop-inbound-lead-routing.md) |
 
 ---
@@ -95,7 +96,7 @@ Test matrix: [`data/real-companies-benchmark.csv`](data/real-companies-benchmark
 | `data/routing-*.csv`, `data/unseen-2026-11-25.csv` | What the workflow decided, one row per case or message |
 | `docs/routing-benchmark.md` | What the workflow decided on the 30 cases and on 51 messages it had never seen |
 | `data/unseen-messages.csv` | 51 invented messages, English and Italian, half of them asking for nothing |
-| `docs/routing-verification.md` | 17 scenarios run in n8n 2.48.7 |
+| `docs/routing-verification.md` | 21 scenarios run in n8n 2.48.7 |
 | `docs/index.html` | Interactive visual workflow explorer (GitHub Pages) |
 
 ## License

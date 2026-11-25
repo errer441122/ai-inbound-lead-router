@@ -36,6 +36,7 @@ A person reads 39 of the 51 messages and 21 of the 30 cases. With this model the
 
 - **A quote proves that the words are in the message, not that they are a request.** The model quoted 4 of the 27 other messages. Three went to a person because their tier was not Tier 1.
 - **The fourth reached Sales:** message 45, "I am looking for a senior freelancer to manage B2B campaigns on LinkedIn" (in Italian). It is one of the five marked `ambiguous`: a person could call it a request.
+- **Orders for the AI.** Eight messages that tried to give orders to the model (English, Italian, JSON, one hidden in the website) all went to a person: six by a fixed rule, two because the model scored them 45. The rule stops plain orders. A convincing fake request still reaches Sales, as it would in any inbox.
 - **Two requests out of 24 were not quoted** (35 and 36). Both went to a person because the score was 65.
 - **The messages are invented.** The 51 were written by the same model, asked for messages that do and do not ask for work, in English and Italian, without seeing the word lists. The labels come from that request; real forms are messier.
 - **One run.** Homepages and answers change. Four live homepages failed (08, 10, 20, 23) and those cases went to a person.
@@ -56,4 +57,6 @@ node tests/routing-benchmark.mjs unseen > rerun-unseen.csv
 node tests/qualification-parser.mjs
 ```
 
-The first two need Ollama with `qwen3.5:4b`. The third needs only Node and checks the rule on the quote: exact words, at least three, never a score alone.
+The first two need Ollama with `qwen3.5:4b`. The third needs only Node and checks the fixed rules: the quote is in the message (at least three words), a score alone never decides, orders for the AI go to a person.
+
+The rules on orders, links and domains were added after these runs. Applied to the same 73 answers of the model, they change none of the decisions.

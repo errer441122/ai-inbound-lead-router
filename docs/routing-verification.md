@@ -21,7 +21,7 @@ Two isolated runs exercised the decision graph in n8n 2.48.7. The first used the
 
 ## 25 November 2026: the score alone decides nothing
 
-The [benchmark](routing-benchmark.md) found a model that was 95 and 98 sure about two messages that asked for nothing. The model must now copy the words that ask for work (`request_quote`), and the parser checks that they are in the message. A third run repeated the 12 inputs above with the new key, and all 12 reached the corrected route. These five were added:
+The [benchmark](routing-benchmark.md) found a model that was 95 and 98 sure about two messages that asked for nothing. The model must now copy the words that ask for work (`request_quote`), and the parser checks that they are in the message. A third run repeated the 12 inputs above with the new key, and all 12 reached the corrected route. These nine were added:
 
 | Synthetic input | Observed route |
 | --- | --- |
@@ -30,6 +30,10 @@ The [benchmark](routing-benchmark.md) found a model that was 95 and 98 sure abou
 | Tier 1, score 98, `request_quote` missing | Review |
 | Tier 2, score 90, but the message asks for work | Review |
 | Message telling the model to answer Tier 1 and 100, empty quote | Review |
+| Message gives orders, the model obeys and quotes it, Tier 1, score 100 | Review |
+| Website gives orders, the model obeys, Tier 1, score 100 | Review |
+| Real request with `<!channel>` and a hidden link, Tier 1, score 95 | Sales, with no mention and no link in the Slack text |
+| Email address at `169.254.169.254`, an internal address | Self-serve: the website is never opened |
 
 In the first input (Tier 1, score 95, request quoted) the Slack message carried the quoted words, so the rep reads the request before the opener.
 
