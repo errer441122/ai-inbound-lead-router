@@ -1,6 +1,8 @@
 # Routing decisions tested in n8n
 
-On 22 November 2026, two isolated runs exercised the decision graph in n8n 2.48.7. The first used the workflow at `349830f`. The second changed the parser to require website text, a recognised tier and an integer confidence score from 0 to 100.
+## 22 November 2026: the parser
+
+Two isolated runs exercised the decision graph in n8n 2.48.7. The first used the workflow at `349830f`. The second changed the parser to require website text, a recognised tier and an integer confidence score from 0 to 100.
 
 | Synthetic input | Original route | Corrected route |
 | --- | --- | --- |
@@ -16,6 +18,22 @@ On 22 November 2026, two isolated runs exercised the decision graph in n8n 2.48.
 | Unknown tier, score 95 | Nurture | **Review** |
 | Tier 1, score 150 | Sales | **Review** |
 | Provider error | Review | Review |
+
+## 25 November 2026: the score alone decides nothing
+
+The [benchmark](routing-benchmark.md) found a model that was 95 and 98 sure about two messages that asked for nothing. The model must now copy the words that ask for work (`request_quote`), and the parser checks that they are in the message. A third run repeated the 12 inputs above with the new key, and all 12 reached the corrected route. These five were added:
+
+| Synthetic input | Observed route |
+| --- | --- |
+| Tier 1, score 98, message asks for nothing, empty quote | Review |
+| Tier 1, score 98, quote that is not in the message | Review |
+| Tier 1, score 98, `request_quote` missing | Review |
+| Tier 2, score 90, but the message asks for work | Review |
+| Message telling the model to answer Tier 1 and 100, empty quote | Review |
+
+In the first input (Tier 1, score 95, request quoted) the Slack message carried the quoted words, so the rep reads the request before the opener.
+
+## How the runs were set up
 
 **Run setup.** A temporary Docker container with networking disabled executed copies of the graph. A manual trigger supplied one synthetic form submission per scenario. Set nodes supplied the website, model and CRM search responses, evaluated the original CRM field expressions, and captured the Slack message. The original normalisation, owner check, corporate-email check, parser, confidence check and tier switch ran in n8n.
 

@@ -1,0 +1,52 @@
+id,language,asks_for_work,word_rules_route,score_only_route,workflow_route,ai_tier,ai_confidence,request_quote
+01,en,yes,marketing_nurture,marketing_nurture,needs_human_review,Tier 2,85,"Hi, we need a custom CRM setup for our e-commerce store. Could you send me a quote? Thanks, Sarah from GrowthLoop."
+02,en,yes,marketing_nurture,marketing_nurture,needs_human_review,Tier 2,85,Our marketing automation is completely broken and losing clients daily. Who can fix this asap?
+03,en,yes,marketing_nurture,sales_fast_track,sales_fast_track,Tier 1,95,"Looking for a consultant to redesign our customer journey emails. Can we schedule a call next week? Best, Elena."
+04,en,yes,marketing_nurture,needs_human_review,needs_human_review,Tier 2,65,Does anyone know if you offer support for legacy systems integration? We have old data that needs migrating.
+05,en,yes,marketing_nurture,marketing_nurture,needs_human_review,Tier 2,85,"Hi team, writing to ask for help with our lead scoring model. It's not tracking accurately anymore. Thanks!"
+06,en,yes,sales_fast_track,sales_fast_track,sales_fast_track,Tier 1,95,"Can you build an automated workflow for B2B sales leads? Need something fast and reliable. Cheers, Alex."
+07,en,yes,marketing_nurture,marketing_nurture,needs_human_review,Tier 2,85,We are struggling with high bounce rates in our newsletters. Can we get some expert advice on this issue?
+08,en,yes,marketing_nurture,marketing_nurture,needs_human_review,Tier 2,85,Is it possible to integrate our ERP with your existing marketing suite? We need a project manager for this.
+09,en,yes,marketing_nurture,marketing_nurture,needs_human_review,Tier 2,85,"Hello, I'm a startup founder needing a full digital transformation plan. Do you have time for a consultation?"
+10,en,yes,marketing_nurture,sales_fast_track,sales_fast_track,Tier 1,95,Could you help us set up personalized email sequences for our new product launch? Waiting for an update.
+11,en,yes,marketing_nurture,marketing_nurture,needs_human_review,Tier 2,85,Can we get your services to rebuild our trust back?
+12,en,yes,marketing_nurture,sales_fast_track,sales_fast_track,Tier 1,95,"Looking for a specialist in GDPR compliance for our EU client base. Any availability coming Monday? Regards, Tom."
+13,en,no,marketing_nurture,needs_human_review,needs_human_review,Tier 2,45,
+14,en,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+15,en,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+16,en,no,sales_fast_track,needs_human_review,needs_human_review,Tier 3,45,
+17,en,no,marketing_nurture,needs_human_review,needs_human_review,Tier 2,65,"We are an agency, do we need a demo or just contact info?"
+18,en,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+19,en,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+20,en,no,marketing_nurture,needs_human_review,needs_human_review,Tier 2,65,
+21,en,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+22,en,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+23,en,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+24,en,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+25,en,no,marketing_nurture,marketing_nurture,needs_human_review,Tier 2,85,Our supplier needs these compliance standards signed by your legal team ASAP.
+26,it,yes,marketing_nurture,sales_fast_track,sales_fast_track,Tier 1,92,"Ciao, abbiamo bisogno di uno CRM per la nostra e-commerce store, fate una stime veloce."
+27,it,yes,sales_fast_track,marketing_nurture,needs_human_review,Tier 2,85,"Buongiorno, il nostro team di marketing fatica ad automatizzare i flussi email, vi serve aiuto?"
+28,it,yes,marketing_nurture,sales_fast_track,sales_fast_track,Tier 1,95,"Grazie per il preventivo ricevuto, ma potreste aggiornarlo considerando anche le nostre esigenze B2B?"
+29,it,yes,marketing_nurture,marketing_nurture,needs_human_review,Tier 2,85,Sto cercando un consulente esperto in CRM per gestire il database clienti del mio startup tech.
+30,it,yes,marketing_nurture,sales_fast_track,sales_fast_track,Tier 1,95,Vorrei un progetto completo per digitalizare il nostro retail.
+31,it,yes,marketing_nurture,sales_fast_track,sales_fast_track,Tier 1,95,"Ciao a tutti, ho un problema grave con l'integrazione dati che non riesco a risolvere da solo."
+32,it,yes,marketing_nurture,sales_fast_track,sales_fast_track,Tier 1,95,"Buongiorno, sarete disponibili per una consulenza gratuita sulle strategie di automazione email per i prossimi giorni?"
+33,it,yes,marketing_nurture,sales_fast_track,sales_fast_track,Tier 1,95,Ho appena lanciato la mia azienda e necessito urgentemente di un sistema CRM affidabile.
+34,it,yes,marketing_nurture,marketing_nurture,needs_human_review,Tier 2,85,"Scusate le interruzioni, ma potreste riscrivere il contratto attuale includendo servizi extra di analisi?"
+35,it,yes,marketing_nurture,needs_human_review,needs_human_review,Tier 2,65,
+36,it,yes,marketing_nurture,needs_human_review,needs_human_review,Tier 2,65,
+37,it,yes,sales_fast_track,sales_fast_track,sales_fast_track,Tier 1,95,"Buongiorno, per favore forniscemi un preventivo dettagliato per l'implementazione di un sistema CRM personalizzato."
+38,it,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+39,it,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+40,it,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+41,it,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,40,
+42,it,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+43,it,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+44,it,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+45,it,no,marketing_nurture,sales_fast_track,sales_fast_track,Tier 1,95,Sto cercando un freelance senior per gestione campagne B2B su LinkedIn.
+46,it,no,marketing_nurture,needs_human_review,needs_human_review,Tier 2,65,
+47,it,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+48,it,no,marketing_nurture,needs_human_review,needs_human_review,Tier 2,65,
+49,it,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+50,it,no,marketing_nurture,needs_human_review,needs_human_review,Tier 3,45,
+51,it,no,marketing_nurture,marketing_nurture,needs_human_review,Tier 2,85,un esempio di caso studio precedente nel settore e-commerce

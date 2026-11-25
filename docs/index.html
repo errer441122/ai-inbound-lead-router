@@ -122,7 +122,7 @@ h1 { font-size: clamp(32px, 3.7vw, 48px); line-height: 1.06; letter-spacing: -0.
 .note { font-size: 13.5px; color: var(--muted); margin: 12px 0 0; }
 
 /* result */
-.result { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; padding: 48px 0 24px; }
+.result { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; padding-top: 48px; padding-bottom: 24px; }
 .result h2 { font-size: 20px; margin-bottom: 14px; }
 .req { font: 12.5px/1.65 var(--mono); background: var(--sunk); border-radius: var(--r); padding: 14px 16px; margin: 0 0 22px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-2); }
 .req .k { color: var(--muted); }
@@ -251,7 +251,7 @@ footer a:hover { color: var(--accent); }
       </div>
     </div>
     <div class="picker" id="walkthrough">
-      <div class="picker-h"><span id="pick-label" data-i18n="pick_label">Pick a lead example</span><small data-i18n="pick_sub">6 scenarios</small></div>
+      <div class="picker-h"><span id="pick-label" data-i18n="pick_label">Pick a lead example</span><small data-i18n="pick_sub">7 scenarios</small></div>
       <div id="leads" role="radiogroup" aria-labelledby="pick-label"></div>
     </div>
   </section>
@@ -259,7 +259,7 @@ footer a:hover { color: var(--accent); }
   <section class="wrap" aria-label="How it works at a glance">
     <div class="glance">
       <div class="gl-step"><span class="k" data-i18n="gl1_k">01 · form submitted</span><b data-i18n="gl1_b">A new contact arrives from the site</b><p data-i18n="gl1_p">Captures email, message and which ad campaign (UTM) brought them in.</p></div>
-      <div class="gl-step"><span class="k" data-i18n="gl2_k">02 · smart filters + AI score</span><b data-i18n="gl2_b">Cleans noise before calling AI</b><p data-i18n="gl2_p">Skips Sales-owned contacts and free Gmail addresses (€0 AI cost); checks the company website and requires ≥80% AI confidence.</p></div>
+      <div class="gl-step"><span class="k" data-i18n="gl2_k">02 · smart filters + AI score</span><b data-i18n="gl2_b">Cleans noise before calling AI</b><p data-i18n="gl2_p">Skips Sales-owned contacts and free Gmail addresses (€0 AI cost). The AI reads the company website and must copy the words that ask for work.</p></div>
       <div class="gl-step"><span class="k" data-i18n="gl3_k">03 · routed cleanly</span><b data-i18n="gl3_b">Right place, zero CRM mess</b><p data-i18n="gl3_p">Best leads ping Sales on Slack with a suggested opener; early-stage leads go to Marketing; uncertain ones wait for human review.</p></div>
     </div>
   </section>
@@ -304,7 +304,7 @@ footer a:hover { color: var(--accent); }
   <section class="wrap band" id="cases">
     <p class="eyebrow">data/real-companies-benchmark.csv</p>
     <h2 data-i18n="cs_h2">30 test cases, each with the route it should take</h2>
-    <p class="sub2" data-i18n="cs_sub">25 real European company domains and 5 edge cases. The messages are sample test inputs documenting the expected route for each category.</p>
+    <p class="sub2" data-i18n="cs_sub">25 real European company domains and 5 edge cases. The messages are invented. Run with a small local model: none sent to Sales by mistake, no request lost, 21 of 30 left to a person.</p>
     <div class="cases" id="case-groups"><div class="group" data-i18n="loading_cs">Loading the test cases...</div></div>
     <p class="note" data-i18n="cs_cost">Estimated AI cost: about €0.001–0.002 per corporate lead at gpt-4o-mini or gemini-2.5-flash list prices. Personal emails cost €0 because they never call the model.</p>
   </section>
@@ -313,7 +313,8 @@ footer a:hover { color: var(--accent); }
     <h2 data-i18n="fl_h2">What happens when something goes wrong</h2>
     <div class="fails">
       <div class="fail"><h3><span data-i18n="fl1_h">A personal email arrives</span><small>gmail.com, libero.it, outlook.com, proton.me...</small></h3><p data-i18n="fl1_p">The corporate-email check stops it before website lookup and AI scoring. The contact is still saved cleanly for self-serve nurture at €0 AI cost.</p></div>
-      <div class="fail"><h3><span data-i18n="fl2_h">The company website blocks access</span><small data-i18n="fl2_s">HTTP 403 or 8-second timeout</small></h3><p data-i18n="fl2_p">The workflow continues on error so the lead is never lost. Without page text, AI confidence stays under 80 and the lead routes to human review.</p></div>
+      <div class="fail"><h3><span data-i18n="fl2_h">The company website blocks access</span><small data-i18n="fl2_s">HTTP 403 or 8-second timeout</small></h3><p data-i18n="fl2_p">The workflow continues on error so the lead is never lost. Without page text the Code node ignores the AI's answer and the lead goes to human review.</p></div>
+      <div class="fail"><h3><span data-i18n="fl6_h">The AI is sure, but the message asks for nothing</span><small data-i18n="fl6_s">confidence 95 and 98 out of 100</small></h3><p data-i18n-html="fl6_p">It happened twice in 30 test cases: a newsletter sign-up and a general question would have reached Sales. Now the AI must copy the words that ask for work; if they are not in the message, a person decides. <a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/routing-benchmark.md">What the test showed</a>.</p></div>
       <div class="fail"><h3><span data-i18n="fl3_h">The AI provider fails or times out</span><small data-i18n="fl3_s">rate limit or temporary outage</small></h3><p data-i18n="fl3_p">The Code parser catches the error safely and defaults confidence to 0, routing the lead to manual review instead of guessing.</p></div>
       <div class="fail"><h3><span data-i18n="fl4_h">HubSpot or Slack returns an error</span><small data-i18n="fl4_s">for example 429, too many requests</small></h3><p data-i18n-html="fl4_p">The standalone Error Workflow posts the failed step and error message to <code>#martech-alerts</code> so Ops can replay the run from n8n history.</p></div>
       <div class="fail"><h3><span data-i18n="fl5_h">The AI writes a suggested email opener</span><small>ai_personalized_hook</small></h3><p data-i18n="fl5_p">It appears only in Slack for a human rep to check and is saved on the HubSpot contact. Nothing is ever emailed to the prospect automatically.</p></div>
@@ -360,9 +361,9 @@ const I18N = {
     hero_h1: "Sort incoming website leads automatically and send only qualified ones to Sales.",
     hero_lede: "Every time someone fills out your contact form, this system checks if Sales already knows them, filters personal Gmail spam, scores company fit with AI, and updates HubSpot without overwriting existing rep or campaign data.",
     hero_cta1: "Try a lead example", hero_cta2: "Download the workflow",
-    pick_label: "Pick a lead example", pick_sub: "6 scenarios",
+    pick_label: "Pick a lead example", pick_sub: "7 scenarios",
     gl1_k: "01 · form submitted", gl1_b: "A new contact arrives from the site", gl1_p: "Captures email, message and which ad campaign (UTM) brought them in.",
-    gl2_k: "02 · smart filters + AI score", gl2_b: "Cleans noise before calling AI", gl2_p: "Skips Sales-owned contacts and free Gmail addresses (€0 AI cost); checks the company website and requires ≥80% AI confidence.",
+    gl2_k: "02 · smart filters + AI score", gl2_b: "Cleans noise before calling AI", gl2_p: "Skips Sales-owned contacts and free Gmail addresses (€0 AI cost). The AI reads the company website and must copy the words that ask for work.",
     gl3_k: "03 · routed cleanly", gl3_b: "Right place, zero CRM mess", gl3_p: "Best leads ping Sales on Slack with a suggested opener; early-stage leads go to Marketing; uncertain ones wait for human review.",
     loading_wf: "Loading the workflow file...", loading_cs: "Loading the test cases...",
     canvas_note: 'Drawn directly from <a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><code>workflows/ai-inbound-lead-router.n8n.json</code></a>. The leads, AI scores and texts are examples; the path, HubSpot fields and Slack text come straight from the file.',
@@ -374,11 +375,12 @@ const I18N = {
     r3_b: "Latest campaign updates every time", r3_p: "Every route refreshes last-touch UTMs so reps immediately see what brought the contact back.",
     r4_b: "Sales stages stay untouched", r4_p: "No automation node ever modifies the lifecycle stage or changes the contact owner.",
     cs_h2: "30 test cases, each with the route it should take",
-    cs_sub: "25 real European company domains and 5 edge cases. The messages are sample test inputs documenting the expected route for each category.",
+    cs_sub: "25 real European company domains and 5 edge cases. The messages are invented. Run with a small local model: none sent to Sales by mistake, no request lost, 21 of 30 left to a person.",
     cs_cost: "Estimated AI cost: about €0.001–0.002 per corporate lead at gpt-4o-mini or gemini-2.5-flash list prices. Personal emails cost €0 because they never call the model.",
     fl_h2: "What happens when something goes wrong",
     fl1_h: "A personal email arrives", fl1_p: "The corporate-email check stops it before website lookup and AI scoring. The contact is still saved cleanly for self-serve nurture at €0 AI cost.",
-    fl2_h: "The company website blocks access", fl2_s: "HTTP 403 or 8-second timeout", fl2_p: "The workflow continues on error so the lead is never lost. Without page text, AI confidence stays under 80 and the lead routes to human review.",
+    fl2_h: "The company website blocks access", fl2_s: "HTTP 403 or 8-second timeout", fl2_p: "The workflow continues on error so the lead is never lost. Without page text the Code node ignores the AI's answer and the lead goes to human review.",
+    fl6_h: "The AI is sure, but the message asks for nothing", fl6_s: "confidence 95 and 98 out of 100", fl6_p: `It happened twice in 30 test cases: a newsletter sign-up and a general question would have reached Sales. Now the AI must copy the words that ask for work; if they are not in the message, a person decides. <a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/routing-benchmark.md">What the test showed</a>.`,
     fl3_h: "The AI provider fails or times out", fl3_s: "rate limit or temporary outage", fl3_p: "The Code parser catches the error safely and defaults confidence to 0, routing the lead to manual review instead of guessing.",
     fl4_h: "HubSpot or Slack returns an error", fl4_s: "for example 429, too many requests", fl4_p: "The standalone Error Workflow posts the failed step and error message to <code>#martech-alerts</code> so Ops can replay the run from n8n history.",
     fl5_h: "The AI writes a suggested email opener", fl5_p: "It appears only in Slack for a human rep to check and is saved on the HubSpot contact. Nothing is ever emailed to the prospect automatically.",
@@ -407,12 +409,13 @@ const I18N = {
     ],
     route_tag: { sales: "sales", nurture: "nurture", owner: "owned", "self-serve": "self-serve", review: "review", alert: "alert" },
     leads_text: [
-      { what: "Tier 1: instant alert for Sales", trace: ["Form arrives with email, message and UTMs.", "Domain velasca.com, UTMs lowercased.", "No contact yet (alwaysOutputData=true keeps new leads flowing).", "No owner: the workflow may score and route.", "Corporate domain: continue.", "velasca.com answers; public text goes to the model.", "gpt-4o-mini (temp 0.1, JSON): Tier 1, confidence 92.", "Code node parses JSON once safely (confidence 92).", "92 ≥ 80: safe to route automatically.", "Tier 1 branch.", "First touch locked once, last touch and ICP fields saved.", "Slack alert posted for a Sales rep to follow up."] },
-      { what: "Tier 2: first campaign kept intact", trace: ["Form arrives with email, message and UTMs.", "Domain satispay.com.", "Existing contact found: original first_touch_utm_* will be kept.", "No rep assigned yet: score and route.", "Corporate domain: continue.", "satispay.com answers.", "Tier 2, confidence 88: research download, no buying intent yet.", "Code node parses JSON safely (confidence 88).", "88 ≥ 80: route automatically.", "Tier 2 branch.", "Original first_touch_utm_* kept; last_touch_utm_* refreshed."], quiet: "Nothing posted on Slack. Early-stage leads go to Marketing nurture without interrupting Sales." },
+      { what: "Tier 1: instant alert for Sales", trace: ["Form arrives with email, message and UTMs.", "Domain velasca.com, UTMs lowercased.", "No contact yet (alwaysOutputData=true keeps new leads flowing).", "No owner: the workflow may score and route.", "Corporate domain: continue.", "velasca.com answers; public text goes to the model.", "gpt-4o-mini (temp 0.1, JSON): Tier 1, confidence 92.", "Code node finds the quoted request word for word in the message.", "92 ≥ 80 and a real request: route automatically.", "Tier 1 branch.", "First touch locked once, last touch and ICP fields saved.", "Slack alert posted for a Sales rep to follow up."] },
+      { what: "Tier 2: first campaign kept intact", trace: ["Form arrives with email, message and UTMs.", "Domain satispay.com.", "Existing contact found: original first_touch_utm_* will be kept.", "No rep assigned yet: score and route.", "Corporate domain: continue.", "satispay.com answers.", "Tier 2, confidence 88, no request quoted: a research download.", "Code node: nothing asked, so tier and message agree.", "88 ≥ 80: route automatically.", "Tier 2 branch.", "Original first_touch_utm_* kept; last_touch_utm_* refreshed."], quiet: "Nothing posted on Slack. Early-stage leads go to Marketing nurture without interrupting Sales." },
       { what: "Already followed by Sales: left untouched", trace: ["Form arrives with email, message and UTMs.", "Domain tannico.it.", "Contact found, with an owner already assigned in HubSpot.", "Owner exists: Sales is already working this lead.", "Only the three last-touch UTMs refresh.", "The assigned rep gets a quick Slack heads-up. Zero AI call, zero re-routing."] },
       { what: "Personal Gmail: zero AI spend", trace: ["Form arrives with email, message and UTMs.", "Domain gmail.com.", "No contact yet.", "No owner: continue.", "gmail.com is on the free-email list: stop here.", "Saved for self-serve nurture (first & last UTMs). No website fetch, no AI call."], quiet: "Nothing posted on Slack. Personal emails never interrupt Sales or spend AI credits." },
-      { what: "Blocked website: held for human review", trace: ["Form arrives with email, message and UTMs.", "Domain stealth-co.example.", "New contact (alwaysOutputData=true).", "No owner: continue.", "Corporate domain: continue.", "HTTP 403. Node continues on error so the lead is not lost.", "No page text and a 2-word message: confidence 62.", "Code node parses JSON safely (confidence 62).", "62 < 80: blocked from automatic routing.", "Saved to needs_human_review with full UTM attribution."], quiet: "Nothing posted on Sales Slack. Contact waits safely in HubSpot's needs_human_review list for morning Ops triage." },
-      { what: "HubSpot returns 429 error", trace: ["Same Velasca lead.", "Domain velasca.com.", "No contact yet.", "No owner: continue.", "Corporate domain: continue.", "velasca.com answers.", "Tier 1, confidence 92.", "Parsed cleanly.", "Route automatically.", "Tier 1 branch.", "HubSpot answers 429. This node stops on error, failing the run.", "Standalone error-notifier.n8n.json catches the failure.", "Ops receives the failed node and error message in #martech-alerts."], none: "Nothing written: the run stopped at the HubSpot write. Ops replays it from n8n history once HubSpot recovers." },
+      { what: "Blocked website: held for human review", trace: ["Form arrives with email, message and UTMs.", "Domain stealth-co.example.", "New contact (alwaysOutputData=true).", "No owner: continue.", "Corporate domain: continue.", "HTTP 403. Node continues on error so the lead is not lost.", "The model still answers: Tier 3, confidence 62.", "Code node ignores it: without the website the score becomes 0.", "0 < 80: blocked from automatic routing.", "Saved to needs_human_review with full UTM attribution."], quiet: "Nothing posted on Sales Slack. Contact waits safely in HubSpot's needs_human_review list for morning Ops triage." },
+      { what: "AI is sure, message asks for nothing", trace: ["Form arrives with email, message and UTMs.", "Domain acme.example.", "New contact (alwaysOutputData=true).", "No owner: continue.", "Corporate domain: continue.", "acme.example answers.", "Tier 1, confidence 95, no request quoted.", "Code node: a newsletter sign-up asks for no work, so the score becomes 0.", "0 < 80: the AI alone cannot alert Sales.", "Saved to needs_human_review with the reason."], quiet: "Nothing posted on Sales Slack. A person reads the message and decides." },
+      { what: "HubSpot returns 429 error", trace: ["Same Velasca lead.", "Domain velasca.com.", "No contact yet.", "No owner: continue.", "Corporate domain: continue.", "velasca.com answers.", "Tier 1, confidence 92, request quoted.", "Quote found in the message.", "Route automatically.", "Tier 1 branch.", "HubSpot answers 429. This node stops on error, failing the run.", "Standalone error-notifier.n8n.json catches the failure.", "Ops receives the failed node and error message in #martech-alerts."], none: "Nothing written: the run stopped at the HubSpot write. Ops replays it from n8n history once HubSpot recovers." },
     ],
   },
   it: {
@@ -422,9 +425,9 @@ const I18N = {
     hero_h1: "Smista in automatico i contatti dal sito e manda ai venditori solo quelli giusti.",
     hero_lede: "Ogni volta che qualcuno compila il form sul sito, questo sistema controlla se è già seguito da un venditore, filtra le email personali (Gmail/Libero), valuta l'azienda con l'AI e aggiorna HubSpot senza sovrascrivere i dati già esistenti.",
     hero_cta1: "Prova un esempio", hero_cta2: "Scarica il workflow",
-    pick_label: "Scegli un contatto di esempio", pick_sub: "6 scenari",
+    pick_label: "Scegli un contatto di esempio", pick_sub: "7 scenari",
     gl1_k: "01 · compilazione form", gl1_b: "Arriva un nuovo contatto dal sito", gl1_p: "Raccoglie email, messaggio e campagna pubblicitaria (UTM) di provenienza.",
-    gl2_k: "02 · filtri smart + voto AI", gl2_b: "Pulisce il rumore prima dell'AI", gl2_p: "Salta contatti già assegnati ai venditori ed email personali (costo AI €0); legge il sito aziendale e richiede fiducia AI ≥80%.",
+    gl2_k: "02 · filtri smart + voto AI", gl2_b: "Pulisce il rumore prima dell'AI", gl2_p: "Salta contatti già assegnati ai venditori ed email personali (costo AI €0). L'AI legge il sito aziendale e deve copiare le parole con cui il messaggio chiede un lavoro.",
     gl3_k: "03 · instradamento pulito", gl3_b: "Posto giusto, zero caos nel CRM", gl3_p: "I migliori contatti avvisano subito i venditori su Slack con una frase di apertura; gli altri vanno al Marketing o a revisione umana.",
     loading_wf: "Caricamento file workflow...", loading_cs: "Caricamento casi di test...",
     canvas_note: 'Disegnato direttamente da <a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/workflows/ai-inbound-lead-router.n8n.json"><code>workflows/ai-inbound-lead-router.n8n.json</code></a>. I contatti e i punteggi sono esempi; percorso, campi HubSpot e testo Slack arrivano direttamente dal file.',
@@ -436,11 +439,12 @@ const I18N = {
     r3_b: "L'ultima campagna si aggiorna sempre", r3_p: "Ogni percorso aggiorna gli UTM più recenti così il team vede subito cosa ha riportato il contatto sul sito.",
     r4_b: "Le fasi commerciali non si toccano", r4_p: "Nessun nodo dell'automazione modifica mai lo stato trattativa (lifecycle stage) né cambia il venditore assegnato.",
     cs_h2: "30 casi di test con il percorso atteso per ciascuno",
-    cs_sub: "25 domini reali di aziende europee e 5 casi limite. I messaggi sono esempi di test per documentare il percorso atteso per ogni categoria.",
+    cs_sub: "25 domini reali di aziende europee e 5 casi limite. I messaggi sono inventati. Provati con un piccolo modello locale: nessuno mandato ai venditori per errore, nessuna richiesta persa, 21 su 30 lasciati a una persona.",
     cs_cost: "Costo AI stimato: circa €0,001–0,002 per lead aziendale ai prezzi di gpt-4o-mini o gemini-2.5-flash. Le email personali costano €0 perché non chiamano l'AI.",
     fl_h2: "Cosa succede quando qualcosa va storto",
     fl1_h: "Arriva un'email personale", fl1_p: "Il filtro aziendale la blocca prima di leggere il sito o chiamare l'AI. Il contatto viene comunque salvato per il percorso self-serve a costo AI €0.",
-    fl2_h: "Il sito aziendale blocca l'accesso", fl2_s: "errore HTTP 403 o timeout di 8 secondi", fl2_p: "Il flusso continua senza perdere il contatto. Senza testo del sito la fiducia AI resta sotto 80 e il contatto passa a revisione umana.",
+    fl2_h: "Il sito aziendale blocca l'accesso", fl2_s: "errore HTTP 403 o timeout di 8 secondi", fl2_p: "Il flusso continua senza perdere il contatto. Senza testo del sito il nodo Code ignora la risposta dell'AI e il contatto passa a revisione umana.",
+    fl6_h: "L'AI è sicura, ma il messaggio non chiede niente", fl6_s: "fiducia 95 e 98 su 100", fl6_p: `È successo due volte su 30 casi di prova: un'iscrizione alla newsletter e una domanda generica sarebbero arrivate ai venditori. Ora l'AI deve copiare le parole con cui il messaggio chiede un lavoro; se nel messaggio non ci sono, decide una persona. <a href="https://github.com/errer441122/ai-inbound-lead-router/blob/main/docs/routing-benchmark.md">Cosa ha mostrato la prova</a>.`,
     fl3_h: "Il provider AI va in errore o timeout", fl3_s: "limite richieste o disservizio temporaneo", fl3_p: "Il nodo Code intercetta l'errore e imposta la fiducia a 0: il contatto va in coda di revisione invece di essere smistato a caso.",
     fl4_h: "HubSpot o Slack restituiscono errore", fl4_s: "esempio errore 429, troppe richieste", fl4_p: "Il workflow separato Error Notifier segnala nodo ed errore su <code>#martech-alerts</code> così il team può rieseguire il contatto dallo storico di n8n.",
     fl5_h: "L'AI propone una frase di apertura", fl5_p: "Compare solo su Slack per il venditore ed è salvata in HubSpot. Non viene mai spedita nessuna email automatica al cliente senza controllo umano.",
@@ -469,12 +473,13 @@ const I18N = {
     ],
     route_tag: { sales: "vendite", nurture: "marketing", owner: "già seguito", "self-serve": "self-serve", review: "revisione", alert: "errore" },
     leads_text: [
-      { what: "Tier 1: avviso immediato ai venditori", trace: ["Arriva il form con email, messaggio e campagne UTM.", "Dominio velasca.com, UTM normalizzati in minuscolo.", "Contatto nuovo (alwaysOutputData=true mantiene il flusso attivo).", "Nessun venditore assegnato: si può valutare e smistare.", "Dominio aziendale: si prosegue.", "velasca.com risponde; il testo pubblico passa all'AI.", "gpt-4o-mini (temp 0.1, JSON): Tier 1, fiducia 92.", "Il nodo Code legge il JSON in sicurezza (fiducia 92).", "92 ≥ 80: si può instradare in automatico.", "Ramo Tier 1.", "Prima campagna bloccata, ultima campagna e campi ICP salvati.", "Avviso inviato su Slack al team vendite."] },
-      { what: "Tier 2: prima campagna preservata", trace: ["Arriva il form con email, messaggio e UTM.", "Dominio satispay.com.", "Contatto già presente: i vecchi first_touch_utm_* restano protetti.", "Nessun venditore ancora assegnato: si valuta.", "Dominio aziendale: si prosegue.", "satispay.com risponde.", "Tier 2, fiducia 88: download esplorativo, non ancora pronto all'acquisto.", "Il nodo Code legge il JSON in sicurezza (fiducia 88).", "88 ≥ 80: instradamento automatico.", "Ramo Tier 2.", "Prima campagna originale conservata; ultima campagna aggiornata."], quiet: "Nessun messaggio su Slack. I contatti esplorativi vanno al Marketing senza interrompere i venditori." },
+      { what: "Tier 1: avviso immediato ai venditori", trace: ["Arriva il form con email, messaggio e campagne UTM.", "Dominio velasca.com, UTM normalizzati in minuscolo.", "Contatto nuovo (alwaysOutputData=true mantiene il flusso attivo).", "Nessun venditore assegnato: si può valutare e smistare.", "Dominio aziendale: si prosegue.", "velasca.com risponde; il testo pubblico passa all'AI.", "gpt-4o-mini (temp 0.1, JSON): Tier 1, fiducia 92.", "Il nodo Code ritrova parola per parola la richiesta citata dall'AI.", "92 ≥ 80 e richiesta vera: si instrada in automatico.", "Ramo Tier 1.", "Prima campagna bloccata, ultima campagna e campi ICP salvati.", "Avviso inviato su Slack al team vendite."] },
+      { what: "Tier 2: prima campagna preservata", trace: ["Arriva il form con email, messaggio e UTM.", "Dominio satispay.com.", "Contatto già presente: i vecchi first_touch_utm_* restano protetti.", "Nessun venditore ancora assegnato: si valuta.", "Dominio aziendale: si prosegue.", "satispay.com risponde.", "Tier 2, fiducia 88, nessuna richiesta citata: un download.", "Il nodo Code: nessuna richiesta, tier e messaggio concordano.", "88 ≥ 80: instradamento automatico.", "Ramo Tier 2.", "Prima campagna originale conservata; ultima campagna aggiornata."], quiet: "Nessun messaggio su Slack. I contatti esplorativi vanno al Marketing senza interrompere i venditori." },
       { what: "Già seguito da un venditore: non toccato", trace: ["Arriva il form con email, messaggio e UTM.", "Dominio tannico.it.", "Contatto trovato in HubSpot con un venditore già assegnato.", "Owner presente: il commerciale sta già lavorando questo contatto.", "Si aggiornano solo i tre campi dell'ultima campagna (last-touch).", "Il venditore riceve una nota su Slack. Zero chiamate AI, nessun cambio stato."] },
       { what: "Email Gmail personale: €0 spesi in AI", trace: ["Arriva il form con email, messaggio e UTM.", "Dominio gmail.com.", "Contatto nuovo.", "Nessun venditore: si prosegue.", "gmail.com è nella lista email personali: stop qui.", "Salvato per il percorso self-serve (UTM inclusi). Nessuna lettura sito, nessuna chiamata AI."], quiet: "Nessun avviso su Slack. Le email personali non disturbano i venditori e non consumano crediti AI." },
-      { what: "Sito bloccato: revisione umana", trace: ["Arriva il form con email, messaggio e UTM.", "Dominio stealth-co.example.", "Contatto nuovo (alwaysOutputData=true).", "Nessun venditore: si prosegue.", "Dominio aziendale: si prosegue.", "Errore HTTP 403. Il nodo continua in errore per non perdere il contatto.", "Senza sito e con un messaggio di 2 parole: fiducia 62.", "Il nodo Code legge il JSON in sicurezza (fiducia 62).", "62 < 80: bloccato l'instradamento automatico.", "Salvato in needs_human_review con tutti gli UTM intatti."], quiet: "Nessun avviso sul canale Vendite. Il contatto attende in sicurezza nella lista HubSpot needs_human_review per il controllo mattutino." },
-      { what: "HubSpot risponde errore 429", trace: ["Stesso contatto Velasca.", "Dominio velasca.com.", "Contatto nuovo.", "Nessun venditore: si prosegue.", "Dominio aziendale: si prosegue.", "velasca.com risponde.", "Tier 1, fiducia 92.", "Letto correttamente.", "Instradamento automatico.", "Ramo Tier 1.", "HubSpot risponde 429. Questo nodo ferma l'esecuzione in errore.", "Il workflow separato error-notifier.n8n.json intercetta il blocco.", "Il team Ops riceve nodo ed errore esatto su #martech-alerts."], none: "Nessun dato scritto: il flusso si è fermato alla scrittura HubSpot. Ops lo riesegue dallo storico di n8n appena HubSpot torna disponibile." },
+      { what: "Sito bloccato: revisione umana", trace: ["Arriva il form con email, messaggio e UTM.", "Dominio stealth-co.example.", "Contatto nuovo (alwaysOutputData=true).", "Nessun venditore: si prosegue.", "Dominio aziendale: si prosegue.", "Errore HTTP 403. Il nodo continua in errore per non perdere il contatto.", "Il modello risponde lo stesso: Tier 3, fiducia 62.", "Il nodo Code lo ignora: senza il sito la fiducia diventa 0.", "0 < 80: bloccato l'instradamento automatico.", "Salvato in needs_human_review con tutti gli UTM intatti."], quiet: "Nessun avviso sul canale Vendite. Il contatto attende in sicurezza nella lista HubSpot needs_human_review per il controllo mattutino." },
+      { what: "L'AI è sicura, ma nessuno chiede niente", trace: ["Arriva il form con email, messaggio e UTM.", "Dominio acme.example.", "Contatto nuovo (alwaysOutputData=true).", "Nessun venditore: si prosegue.", "Dominio aziendale: si prosegue.", "acme.example risponde.", "Tier 1, fiducia 95, nessuna richiesta citata.", "Il nodo Code: un'iscrizione alla newsletter non chiede un lavoro, la fiducia diventa 0.", "0 < 80: l'AI da sola non può avvisare i venditori.", "Salvato in needs_human_review con il motivo."], quiet: "Nessun avviso sul canale Vendite. Una persona legge il messaggio e decide." },
+      { what: "HubSpot risponde errore 429", trace: ["Stesso contatto Velasca.", "Dominio velasca.com.", "Contatto nuovo.", "Nessun venditore: si prosegue.", "Dominio aziendale: si prosegue.", "velasca.com risponde.", "Tier 1, fiducia 92, richiesta citata.", "Citazione trovata nel messaggio.", "Instradamento automatico.", "Ramo Tier 1.", "HubSpot risponde 429. Questo nodo ferma l'esecuzione in errore.", "Il workflow separato error-notifier.n8n.json intercetta il blocco.", "Il team Ops riceve nodo ed errore esatto su #martech-alerts."], none: "Nessun dato scritto: il flusso si è fermato alla scrittura HubSpot. Ops lo riesegue dallo storico di n8n appena HubSpot torna disponibile." },
     ],
   },
 };
@@ -489,7 +494,7 @@ const LEADS = [
     form: { utm_source: "linkedin", utm_medium: "paid_social", utm_campaign: "eu_crm_audit_q2", message: "Looking to restructure Klaviyo win-back and VIP discount exclusion flows." },
     domain: "velasca.com",
     path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Corporate Email", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Switch", "Upsert Tier 1", "Tier 1 Sales Alert"],
-    values: { icp_tier: "Tier 1", routing_status: "sales_fast_track", ai_confidence_score: "92", ai_icp_reasoning: "Italian D2C footwear brand with a repeat-purchase and VIP-margin need in Klaviyo.", ai_personalized_hook: "Keeping full-price repeat buyers out of win-back offers is usually the quickest margin fix in Klaviyo.", first_touch_utm_source: ["linkedin", "tag_new"], first_touch_utm_medium: ["paid_social", "tag_new"], first_touch_utm_campaign: ["eu_crm_audit_q2", "tag_new"], last_touch_utm_source: "linkedin", last_touch_utm_medium: "paid_social", last_touch_utm_campaign: "eu_crm_audit_q2" },
+    values: { icp_tier: "Tier 1", routing_status: "sales_fast_track", ai_confidence_score: "92", ai_icp_reasoning: "Italian D2C footwear brand with a repeat-purchase and VIP-margin need in Klaviyo.", request_quote: "restructure Klaviyo win-back and VIP discount exclusion flows", ai_personalized_hook: "Keeping full-price repeat buyers out of win-back offers is usually the quickest margin fix in Klaviyo.", first_touch_utm_source: ["linkedin", "tag_new"], first_touch_utm_medium: ["paid_social", "tag_new"], first_touch_utm_campaign: ["eu_crm_audit_q2", "tag_new"], last_touch_utm_source: "linkedin", last_touch_utm_medium: "paid_social", last_touch_utm_campaign: "eu_crm_audit_q2" },
   },
   {
     email: "research@satispay.com", route: "nurture",
@@ -518,7 +523,14 @@ const LEADS = [
     form: { utm_source: "google", utm_medium: "cpc", utm_campaign: "cpc_martech", message: "Info please" },
     domain: "stealth-co.example",
     path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Corporate Email", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Manual Review"],
-    values: { ai_confidence_score: "62", ai_icp_reasoning: "Website unreachable (HTTP 403) and 2-word message lacks context.", first_touch_utm_source: ["google", "tag_new"], first_touch_utm_medium: ["cpc", "tag_new"], first_touch_utm_campaign: ["cpc_martech", "tag_new"], last_touch_utm_source: "google", last_touch_utm_medium: "cpc", last_touch_utm_campaign: "cpc_martech" },
+    values: { ai_confidence_score: "0", ai_icp_reasoning: "Website context unavailable.", first_touch_utm_source: ["google", "tag_new"], first_touch_utm_medium: ["cpc", "tag_new"], first_touch_utm_campaign: ["cpc_martech", "tag_new"], last_touch_utm_source: "google", last_touch_utm_medium: "cpc", last_touch_utm_campaign: "cpc_martech" },
+  },
+  {
+    email: "newsletter@acme.example", route: "review",
+    form: { utm_source: "organic", utm_medium: "seo", utm_campaign: "blog_dmarc", message: "Newsletter signup from blog article on DMARC" },
+    domain: "acme.example",
+    path: ["Webhook", "Normalize", "Search Existing", "Owned by Sales", "Corporate Email", "Homepage", "ICP Qualification", "Parse AI ICP Output", "Confidence", "Manual Review"],
+    values: { ai_confidence_score: "0", ai_icp_reasoning: "AI says Tier 1 (95) but quotes no request from the message.", first_touch_utm_source: ["organic", "tag_new"], first_touch_utm_medium: ["seo", "tag_new"], first_touch_utm_campaign: ["blog_dmarc", "tag_new"], last_touch_utm_source: "organic", last_touch_utm_medium: "seo", last_touch_utm_campaign: "blog_dmarc" },
   },
   {
     email: "growth@velasca.com", route: "alert",
@@ -608,6 +620,7 @@ function slackText(template, l) {
     : /error\.message/.test(x) ? l.error
     : /confidence_score/.test(x) ? String(v.ai_confidence_score ?? 92)
     : /\.reasoning/.test(x) ? v.ai_icp_reasoning
+    : /request_quote/.test(x) ? v.request_quote
     : /personalized_hook/.test(x) ? v.ai_personalized_hook
     : /hubspot_owner_id/.test(x) ? (l.owner || "...")
     : /json\.message\b/.test(x) ? l.form.message
