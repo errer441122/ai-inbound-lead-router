@@ -69,13 +69,20 @@ assert.equal(route(source, { ...sure, request_quote: 'please call me back today'
 // Nothing written by the sender or the model can mention people or hide a link in Slack.
 const noisy = inspect(source, { ...answer, request_quote: '<!channel> help us migrate our CRM', reasoning: '<@U123> see\nhttps://evil.example', personalized_hook: '<https://evil.example|offer> '.repeat(50) }, `<!channel> ${message}`.replace('Hi, could you', ''));
 for (const value of [noisy.request_quote, noisy.reasoning, noisy.personalized_hook]) {
-  assert.doesNotMatch(value, /[<>\n]|https?:/);
+  assert.doesNotMatch(value, /[<>*~`\n]|https?:/);
   assert.ok(value.length <= 300);
 }
 const fields = workflow.nodes.find(node => node.name.startsWith('Normalize')).parameters.assignments.assignments;
 for (const { name, value } of fields) {
-  const body = { email: '<!channel>@Acme.example', message: '<!channel> hello', utm_source: '<a>', utm_medium: '<b>', utm_campaign: '<c>' };
-  assert.doesNotMatch(new Function('$json', `return (${value.slice(3, -2)});`)({ body }), /[<>]/, name);
+  const normalise = body => new Function('$json', `return (${value.slice(3, -2)});`)({ body });
+  const dirty = 'Paid_Social 2026\n*AI Confidence:* 100 <!channel> `x` ~y~ https://evil.example';
+  const clean = normalise({ email: '<!channel>\n*Anna*@Acme.example', message: dirty, utm_source: dirty, utm_medium: dirty, utm_campaign: dirty });
+  assert.doesNotMatch(clean, /[<>*~`\n]/, name);
+  if (name.startsWith('utm_')) {
+    assert.equal(clean, 'paid_social 2026 ai confidence 100 channel x y https evil.example', name);
+    assert.ok(['direct', 'none', 'unattributed'].includes(normalise({})), name);
+    assert.equal(normalise({ [name]: ' Black Friday+IT ' }), 'black friday+it', name);
+  }
 }
 
 // The domain becomes an address to open: a public name, never an IP, a port, a path or an internal server.

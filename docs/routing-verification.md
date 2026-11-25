@@ -21,7 +21,7 @@ Two isolated runs exercised the decision graph in n8n 2.48.7. The first used the
 
 ## 25 November 2026: the score alone decides nothing
 
-The [benchmark](routing-benchmark.md) found a model that was 95 and 98 sure about two messages that asked for nothing. The model must now copy the words that ask for work (`request_quote`), and the parser checks that they are in the message. A third run repeated the 12 inputs above with the new key, and all 12 reached the corrected route. These nine were added:
+The [benchmark](routing-benchmark.md) found a model that was 95 and 98 sure about two messages that asked for nothing. The model must now copy the words that ask for work (`request_quote`), and the parser checks that they are in the message. A third run repeated the 12 inputs above with the new key, and all 12 reached the corrected route. These eleven were added:
 
 | Synthetic input | Observed route |
 | --- | --- |
@@ -34,6 +34,10 @@ The [benchmark](routing-benchmark.md) found a model that was 95 and 98 sure abou
 | Website gives orders, the model obeys, Tier 1, score 100 | Review |
 | Real request with `<!channel>` and a hidden link, Tier 1, score 95 | Sales, with no mention and no link in the Slack text |
 | Email address at `169.254.169.254`, an internal address | Self-serve: the website is never opened |
+| Campaign name with a fake line and a link, Tier 1, score 95 | Sales, with one clean line and no link in the Slack text |
+| Owned contact, message with a fake line and a link | Keep owner, with one clean line and no link in the Slack text |
+
+**n8n's own SSRF protection, run with the real HTTP node.** A public name that resolves to `127.0.0.1`: with the protection off, n8n tried to connect; with `N8N_SSRF_PROTECTION_ENABLED=true` it refused (`SsrfBlockedIpError`). A normal website was read in both cases. That is why the [SOP](sop-inbound-lead-routing.md) asks to turn it on.
 
 In the first input (Tier 1, score 95, request quoted) the Slack message carried the quoted words, so the rep reads the request before the opener.
 

@@ -17,7 +17,8 @@
    - `first_touch_utm_source`, `first_touch_utm_medium`, `first_touch_utm_campaign`, `last_touch_utm_source`, `last_touch_utm_medium`, `last_touch_utm_campaign` (Single-line text)
 2. **Import both workflows into n8n:** *Workflows → Import from File* → select `workflows/ai-inbound-lead-router.n8n.json` and `workflows/error-notifier.n8n.json`, then in the main workflow open **Settings → Error Workflow** and select the Error Notifier.
 3. **Connect credentials inside n8n:** HubSpot Private App token (Contacts Read/Write), OpenAI/Gemini API key, and Slack Bot token (`#inbound-tier1-leads` and `#martech-alerts`).
-4. **Point your website/landing form webhook** (HubSpot Form, Typeform, Webflow, Tally) to the n8n Production Webhook URL, passing hidden UTM fields (`utm_source`, `utm_medium`, `utm_campaign`).
+4. **Turn on n8n's SSRF protection** on the machine that runs n8n (`N8N_SSRF_PROTECTION_ENABLED=true`, [n8n docs](https://docs.n8n.io/deploy/host-n8n/configure-n8n/security/enable-ssrf-protection)). The workflow opens the website in the sender's email domain. It refuses IP addresses and internal names by itself, but only n8n can refuse a public name that resolves or redirects to an internal address.
+5. **Point your website/landing form webhook** (HubSpot Form, Typeform, Webflow, Tally) to the n8n Production Webhook URL, passing hidden UTM fields (`utm_source`, `utm_medium`, `utm_campaign`).
 
 ---
 
