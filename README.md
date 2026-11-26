@@ -1,5 +1,7 @@
 # AI Inbound Lead Enrichment, ICP Scoring & HubSpot Routing
 
+🇮🇹 **In italiano:** smista i contatti che arrivano dal sito e li salva in HubSpot senza toccare quelli già seguiti dai venditori; l'AI deve citare la richiesta del cliente, altrimenti decide una persona. [Apri la pagina in italiano](https://errer441122.github.io/ai-inbound-lead-router/?lang=it)
+
 A visual **n8n + HubSpot + LLM** workflow that turns raw inbound form submissions into clean, deduplicated, UTM-attributed, ICP-scored CRM records and instant Tier 1 Sales alerts, with explicit guardrails for contacts Sales already owns, free emails, low AI confidence, and workflow failures.
 
 **[Explore the interactive workflow walkthrough](https://errer441122.github.io/ai-inbound-lead-router/)** · **[Download n8n blueprint (`workflows/ai-inbound-lead-router.n8n.json`)](workflows/ai-inbound-lead-router.n8n.json)** · **[Error Notifier (`workflows/error-notifier.n8n.json`)](workflows/error-notifier.n8n.json)**
